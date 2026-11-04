@@ -1,0 +1,5 @@
+order_id,customer,quantity,unit_price,active,ordered_on
+1001,Ada,2,19.95,true,2026-10-01
+1002,Grace,1,125.00,false,2026-10-02
+1003,Ada,4,8.50,true,2026-10-03
+1004,Linus,,42.00,true,2026-10-04
