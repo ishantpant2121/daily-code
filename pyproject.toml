@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "daily-code-lab"
+version = "0.1.0"
+description = "DSA examples and a dependency-free CSV profiling CLI"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+csv-inspector = "csv_inspector.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["csv_inspector*"]
