@@ -17,8 +17,7 @@ def classify_value(value: str) -> str:
         return "boolean"
     try:
         date.fromisoformat(candidate)
-        if len(candidate) == 10:
-            return "date"
+        return "date"
     except ValueError:
         pass
     try:
