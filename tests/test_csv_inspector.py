@@ -23,6 +23,9 @@ class TypeInferenceTests(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertEqual(classify_value(value), expected)
 
+    def test_compact_iso_date(self):
+        self.assertEqual(classify_value("20261106"), "date")
+
     def test_type_promotion(self):
         self.assertEqual(resolve_type(["integer", "number"]), "number")
         self.assertEqual(resolve_type(["integer", "string"]), "mixed")
