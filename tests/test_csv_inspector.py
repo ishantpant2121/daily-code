@@ -136,5 +136,17 @@ class CLITests(unittest.TestCase):
         self.assertIn("csv-inspector: error:", errors.getvalue())
 
 
+    def test_invalid_cli_options_return_error_without_stdout(self):
+        for extra_args in (["--max-issues", "0"], ["--delimiter", "||"]):
+            with self.subTest(args=extra_args):
+                output = io.StringIO()
+                errors = io.StringIO()
+                with contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+                    status = main([str(self.path), *extra_args])
+                self.assertEqual(status, 2)
+                self.assertEqual(output.getvalue(), "")
+                self.assertIn("csv-inspector: error:", errors.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
