@@ -106,6 +106,8 @@ class CLITests(unittest.TestCase):
             status = main([str(self.path)])
         self.assertEqual(status, 0)
         self.assertIn("CSV profile:", output.getvalue())
+        self.assertIn("EXAMPLES", output.getvalue())
+        self.assertIn('"10"', output.getvalue())
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             status = main([str(self.path), "--json"])
