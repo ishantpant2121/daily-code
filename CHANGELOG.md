@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added opt-in exact duplicate-row counts and configurable additional missing-value markers.
+
 ## 0.1.0 — 2026-11-04
 
 - Added a standard-library CSV profiler with delimiter detection, type inference,

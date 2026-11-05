@@ -27,6 +27,7 @@ def render_text(profile: CSVProfile) -> str:
     lines = [
         f"CSV profile: {profile.path}",
         f"Rows: {profile.row_count} | Columns: {profile.column_count} | Delimiter: {profile.delimiter!r}",
+        f"Duplicate rows: {profile.duplicate_row_count if profile.duplicate_row_count is not None else 'not tracked'}",
         "", format_row(headings), format_row(tuple("-" * width for width in widths)),
     ]
     lines.extend(format_row(row) for row in rows)
@@ -50,6 +51,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--encoding", default="utf-8-sig", help="input encoding (default: utf-8-sig)")
     parser.add_argument("--json", action="store_true", help="emit a JSON report")
     parser.add_argument("--no-distinct", action="store_true", help="skip exact distinct counts to reduce memory")
+    parser.add_argument("--duplicates", action="store_true", help="count exact duplicate data rows (uses memory proportional to unique rows)")
+    parser.add_argument("--missing-value", action="append", default=[], metavar="VALUE", help="additional value treated as missing; may be repeated")
     parser.add_argument("--max-issues", type=int, default=100, help="maximum diagnostics retained (default: 100)")
     parser.add_argument("--strict", action="store_true", help="return status 1 when structural issues are found")
     return parser
@@ -61,6 +64,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         profile = profile_csv(
             args.path, delimiter=args.delimiter, encoding=args.encoding,
             track_distinct=not args.no_distinct, max_issues=args.max_issues,
+            track_duplicates=args.duplicates, missing_values=tuple(args.missing_value),
         )
     except (CSVInspectionError, OSError, UnicodeError, csv.Error, ValueError) as exc:
         print(f"csv-inspector: error: {exc}", file=sys.stderr)

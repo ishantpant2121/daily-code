@@ -1,9 +1,10 @@
 """CSV file reading and structural diagnostics."""
 
 import csv
+from collections.abc import Iterable
 from pathlib import Path
 
-from .inference import ColumnAccumulator
+from .inference import DEFAULT_MISSING_VALUES, ColumnAccumulator
 from .models import CSVProfile, RowIssue
 
 
@@ -29,12 +30,16 @@ def profile_csv(
     encoding: str = "utf-8-sig",
     track_distinct: bool = True,
     max_issues: int = 100,
+    track_duplicates: bool = False,
+    missing_values: Iterable[str] = (),
 ) -> CSVProfile:
     """Profile a CSV one record at a time and retain bounded diagnostics.
 
     Exact distinct counts use memory proportional to unique non-empty values.
-    Set track_distinct=False to avoid that allocation. Only the first
-    max_issues diagnostics are retained, while the total count is preserved.
+    Set track_distinct=False to avoid that allocation. Duplicate detection is
+    opt-in and retains unique row tuples in memory. Additional missing markers
+    are case-insensitive and are combined with the built-in defaults. Only the
+    first max_issues diagnostics are retained, while the total is preserved.
     """
     if max_issues < 1:
         raise ValueError("max_issues must be at least 1")
@@ -48,6 +53,11 @@ def profile_csv(
     selected_delimiter = _choose_delimiter(sample, delimiter)
     issues: list[RowIssue] = []
     issue_count = 0
+    missing_markers = DEFAULT_MISSING_VALUES | frozenset(
+        value.strip().casefold() for value in missing_values
+    )
+    seen_rows: set[tuple[str, ...]] | None = set() if track_duplicates else None
+    duplicate_row_count = 0
 
     def add_issue(issue: RowIssue) -> None:
         nonlocal issue_count
@@ -71,12 +81,21 @@ def profile_csv(
             if header in seen_headers:
                 add_issue(RowIssue("duplicate_header", 1, f"Header {header!r} is duplicated at column {index}"))
             seen_headers.add(header)
-        accumulators = [ColumnAccumulator(track_distinct) for _ in headers]
+        accumulators = [
+            ColumnAccumulator(track_distinct, missing_values=missing_markers)
+            for _ in headers
+        ]
         row_count = 0
         try:
             for row in reader:
                 row_count += 1
                 record_number = row_count + 1
+                if seen_rows is not None:
+                    row_key = tuple(row)
+                    if row_key in seen_rows:
+                        duplicate_row_count += 1
+                    else:
+                        seen_rows.add(row_key)
                 if len(row) != len(headers):
                     add_issue(RowIssue(
                         "row_width_mismatch", record_number,
@@ -99,4 +118,5 @@ def profile_csv(
         row_count=row_count, column_count=len(headers), columns=columns,
         issues=tuple(issues), issue_count=issue_count,
         issues_truncated=max(0, issue_count - len(issues)),
+        duplicate_row_count=duplicate_row_count if seen_rows is not None else None,
     )

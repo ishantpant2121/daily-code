@@ -53,7 +53,12 @@ def resolve_type(kinds: Iterable[str]) -> str:
 class ColumnAccumulator:
     """Accumulate exact counts, numeric bounds, and bounded examples."""
 
-    def __init__(self, track_distinct: bool = True, max_examples: int = 5) -> None:
+    def __init__(
+        self,
+        track_distinct: bool = True,
+        max_examples: int = 5,
+        missing_values: Iterable[str] = DEFAULT_MISSING_VALUES,
+    ) -> None:
         if max_examples < 0:
             raise ValueError("max_examples cannot be negative")
         self.track_distinct = track_distinct
@@ -66,10 +71,11 @@ class ColumnAccumulator:
         self.all_numeric = True
         self.seen_non_null = False
         self.max_examples = max_examples
+        self.missing_values = frozenset(value.strip().casefold() for value in missing_values)
 
     def add(self, value: str) -> None:
         normalized = value.strip()
-        if normalized.casefold() in DEFAULT_MISSING_VALUES:
+        if normalized.casefold() in self.missing_values:
             self.null_count += 1
             return
         self.seen_non_null = True

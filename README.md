@@ -18,6 +18,7 @@ python -m csv_inspector examples/sales.csv
 python -m csv_inspector examples/sales.csv --json
 python -m csv_inspector examples/sales.csv --strict
 python -m csv_inspector examples/malformed.csv --strict  # exits 1 when issues are found
+python -m csv_inspector examples/duplicates.csv --duplicates --missing-value unknown
 ~~~
 
 ### Install as a command
@@ -33,12 +34,17 @@ csv-inspector examples/sales.csv
 - **--encoding NAME**: choose input encoding (default **utf-8-sig**, including BOM support).
 - **--json**: emit a machine-readable JSON report.
 - **--no-distinct**: avoid retaining unique values in memory.
+- **--duplicates**: count exact repeated data rows (disabled by default; retains unique row tuples in memory).
+- **--missing-value VALUE**: add a case-insensitive missing-value marker; repeat the option for multiple markers.
 - **--max-issues N**: cap stored diagnostics (default 100); the total issue count remains available.
 - **--strict**: exit with status 1 when structural issues are found.
 
 Exact distinct counts use memory proportional to the number of unique non-empty
-values. Use **--no-distinct** for high-cardinality or very large files. Rows are
-streamed and issue storage is capped. The first record is treated as the header.
+values. Use **--no-distinct** for high-cardinality or very large files. Exact
+duplicate-row detection is opt-in because it retains unique row tuples in memory;
+use it when the file size and row cardinality are appropriate. Additional missing
+markers are combined with the built-in markers and compared case-insensitively.
+Rows are streamed and issue storage is capped. The first record is treated as the header.
 Malformed rows are reported rather than silently repaired. Missing markers are
 empty strings, **NA**, **N/A**, **null**, **none**, and **nan** (case-insensitive after trim).
 

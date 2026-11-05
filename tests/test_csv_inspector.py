@@ -69,6 +69,17 @@ class ProfileTests(unittest.TestCase):
         result = profile_csv(path, track_distinct=False)
         self.assertIsNone(result.columns[0].distinct_count)
 
+    def test_duplicate_rows_are_opt_in_and_exact(self):
+        path = self.write_csv("id,name\n1,Ada\n2,Grace\n1,Ada\n1, Ada\n2,Grace\n")
+        self.assertIsNone(profile_csv(path).duplicate_row_count)
+        result = profile_csv(path, track_duplicates=True)
+        self.assertEqual(result.duplicate_row_count, 2)
+
+    def test_custom_missing_markers_are_additive_and_case_insensitive(self):
+        path = self.write_csv("status\nUNKNOWN\n - \nNA\nok\n")
+        result = profile_csv(path, missing_values=("unknown", "-"))
+        self.assertEqual(result.columns[0].null_count, 3)
+
     def test_empty_file_and_invalid_delimiter(self):
         with self.assertRaises(CSVInspectionError):
             profile_csv(self.write_csv(""))
@@ -100,6 +111,18 @@ class CLITests(unittest.TestCase):
             status = main([str(self.path), "--json"])
         self.assertEqual(status, 0)
         self.assertEqual(json.loads(output.getvalue())["row_count"], 2)
+
+    def test_duplicate_and_custom_missing_cli_options(self):
+        sample = self.path.with_name(self.path.stem + "-duplicates.csv")
+        sample.write_text("status\\nunknown\\nunknown\\nok\\n", encoding="utf-8")
+        self.addCleanup(sample.unlink, missing_ok=True)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = main([str(sample), "--duplicates", "--missing-value", "unknown", "--json"])
+        self.assertEqual(status, 0)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["duplicate_row_count"], 1)
+        self.assertEqual(report["columns"][0]["null_count"], 2)
 
     def test_strict_and_error_exit_codes(self):
         broken = self.path.with_name(self.path.stem + "-broken.csv")

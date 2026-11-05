@@ -36,6 +36,7 @@ class CSVProfile:
     issues: tuple[RowIssue, ...]
     issue_count: int
     issues_truncated: int
+    duplicate_row_count: int | None = None
 
     @property
     def has_issues(self) -> bool:
