@@ -114,7 +114,7 @@ class CLITests(unittest.TestCase):
 
     def test_duplicate_and_custom_missing_cli_options(self):
         sample = self.path.with_name(self.path.stem + "-duplicates.csv")
-        sample.write_text("status\\nunknown\\nunknown\\nok\\n", encoding="utf-8")
+        sample.write_text("status\nunknown\nunknown\nok\n", encoding="utf-8")
         self.addCleanup(sample.unlink, missing_ok=True)
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
