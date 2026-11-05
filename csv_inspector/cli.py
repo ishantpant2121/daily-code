@@ -12,11 +12,12 @@ from .profiler import CSVInspectionError, profile_csv
 
 
 def render_text(profile: CSVProfile) -> str:
-    headings = ("COLUMN", "TYPE", "NULLS", "DISTINCT", "MIN", "MAX")
+    headings = ("COLUMN", "TYPE", "NULLS", "DISTINCT", "MIN", "MAX", "EXAMPLES")
     rows = [
         (column.name, column.inferred_type, str(column.null_count),
          "disabled" if column.distinct_count is None else str(column.distinct_count),
-         column.min_value or "—", column.max_value or "—")
+         column.min_value or "—", column.max_value or "—",
+         ", ".join(json.dumps(value, ensure_ascii=False) for value in column.examples) or "—")
         for column in profile.columns
     ]
     widths = [max(len(headings[i]), *(len(row[i]) for row in rows)) for i in range(len(headings))]
