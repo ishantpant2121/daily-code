@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
+from . import __version__
 from .models import CSVProfile
 from .profiler import CSVInspectionError, profile_csv
 
@@ -47,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="csv-inspector",
         description="Profile a CSV file using only the Python standard library.",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("path", type=Path, help="CSV file to inspect")
     parser.add_argument("--delimiter", help="one-character separator (auto-detected by default)")
     parser.add_argument("--encoding", default="utf-8-sig", help="input encoding (default: utf-8-sig)")
