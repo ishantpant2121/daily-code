@@ -16,6 +16,10 @@ def _choose_delimiter(sample: str, requested: str | None) -> str:
     if requested is not None:
         if len(requested) != 1:
             raise CSVInspectionError("delimiter must be exactly one character")
+        if requested in {"\r", "\n", '"'}:
+            raise CSVInspectionError(
+                "delimiter cannot be a newline or the CSV quote character"
+            )
         return requested
     try:
         return csv.Sniffer().sniff(sample, delimiters=",;\t|").delimiter

@@ -90,6 +90,13 @@ class ProfileTests(unittest.TestCase):
         with self.assertRaises(CSVInspectionError):
             profile_csv(self.write_csv("a,b\n1,2\n"), delimiter="||")
 
+    def test_rejects_newline_and_quote_delimiters(self):
+        sample = self.write_csv("a,b\\n1,2\\n")
+        for delimiter in ("\\n", "\\r", '"'):
+            with self.subTest(delimiter=delimiter):
+                with self.assertRaises(CSVInspectionError):
+                    profile_csv(sample, delimiter=delimiter)
+
     def test_rejects_unclosed_quoted_field(self):
         path = self.write_csv('name,note\nAda,"not closed\n')
         with self.assertRaisesRegex(CSVInspectionError, "malformed CSV"):
