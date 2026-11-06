@@ -131,3 +131,47 @@ def quickselect(values, k):
             return result[k]
 
     raise RuntimeError("selection failed")
+
+
+
+def count_inversions(values):
+    """Count index pairs (i, j) where i < j and values[i] > values[j].
+
+    Uses merge sort in O(n log n) time and returns only the count. The input
+    sequence is not modified.
+    """
+    result = list(values)
+    scratch = result.copy()
+
+    def count_range(start, end):
+        if end - start < 2:
+            return 0
+
+        middle = (start + end) // 2
+        inversions = count_range(start, middle)
+        inversions += count_range(middle, end)
+
+        left, right, output = start, middle, start
+        while left < middle and right < end:
+            if result[left] <= result[right]:
+                scratch[output] = result[left]
+                left += 1
+            else:
+                scratch[output] = result[right]
+                right += 1
+                inversions += middle - left
+            output += 1
+
+        while left < middle:
+            scratch[output] = result[left]
+            left += 1
+            output += 1
+        while right < end:
+            scratch[output] = result[right]
+            right += 1
+            output += 1
+
+        result[start:end] = scratch[start:end]
+        return inversions
+
+    return count_range(0, len(result))

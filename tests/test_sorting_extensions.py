@@ -2,7 +2,7 @@
 
 import unittest
 
-from sorting import heap_sort, quickselect
+from sorting import count_inversions, heap_sort, quickselect
 
 
 class HeapSortTests(unittest.TestCase):
@@ -38,6 +38,23 @@ class QuickselectTests(unittest.TestCase):
                     quickselect([], index)
         with self.assertRaises(ValueError):
             quickselect([1, 2], 2)
+
+
+class InversionCountTests(unittest.TestCase):
+    def test_counts_known_inversions_and_ignores_equal_values(self):
+        self.assertEqual(count_inversions([2, 4, 1, 3, 5]), 3)
+        self.assertEqual(count_inversions([2, 2, 1]), 2)
+        self.assertEqual(count_inversions([1, 1, 1]), 0)
+
+    def test_handles_sorted_reverse_and_empty_inputs(self):
+        self.assertEqual(count_inversions([]), 0)
+        self.assertEqual(count_inversions([1, 2, 3, 4]), 0)
+        self.assertEqual(count_inversions([4, 3, 2, 1]), 6)
+
+    def test_does_not_mutate_input(self):
+        values = [3, 1, 2]
+        self.assertEqual(count_inversions(values), 2)
+        self.assertEqual(values, [3, 1, 2])
 
 
 if __name__ == "__main__":
