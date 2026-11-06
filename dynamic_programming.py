@@ -81,3 +81,23 @@ def longest_common_subsequence_length(first, second):
                 current.append(max(previous[index], current[-1]))
         previous = current
     return previous[-1]
+
+
+
+def edit_distance(source, target):
+    """Return Levenshtein distance using O(m*n) time and O(min(m, n)) space."""
+    if len(source) < len(target):
+        source, target = target, source
+
+    previous = list(range(len(target) + 1))
+    for row, left in enumerate(source, start=1):
+        current = [row]
+        for column, right in enumerate(target, start=1):
+            substitution = 0 if left == right else 1
+            current.append(min(
+                current[-1] + 1,
+                previous[column] + 1,
+                previous[column - 1] + substitution,
+            ))
+        previous = current
+    return previous[-1]
