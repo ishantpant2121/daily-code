@@ -19,7 +19,19 @@ def classify_value(value: str) -> str:
         date.fromisoformat(candidate)
         return "date"
     except ValueError:
-        pass
+        # Python 3.11 added compact YYYYMMDD support to fromisoformat().
+        # Parse this basic ISO date explicitly so Python 3.10 behaves the same.
+        if len(candidate) == 8 and candidate.isascii() and candidate.isdigit():
+            try:
+                date(
+                    int(candidate[:4]),
+                    int(candidate[4:6]),
+                    int(candidate[6:]),
+                )
+            except ValueError:
+                pass
+            else:
+                return "date"
     try:
         datetime.fromisoformat(candidate.replace("Z", "+00:00"))
         if "T" in candidate or " " in candidate:
@@ -70,7 +82,9 @@ class ColumnAccumulator:
         self.all_numeric = True
         self.seen_non_null = False
         self.max_examples = max_examples
-        self.missing_values = frozenset(value.strip().casefold() for value in missing_values)
+        self.missing_values = frozenset(
+            value.strip().casefold() for value in missing_values
+        )
 
     def add(self, value: str) -> None:
         normalized = value.strip()
@@ -86,8 +100,12 @@ class ColumnAccumulator:
             self.examples.append(normalized)
         if kind in {"integer", "number"}:
             number = Decimal(normalized)
-            self.numeric_min = number if self.numeric_min is None else min(self.numeric_min, number)
-            self.numeric_max = number if self.numeric_max is None else max(self.numeric_max, number)
+            self.numeric_min = (
+                number if self.numeric_min is None else min(self.numeric_min, number)
+            )
+            self.numeric_max = (
+                number if self.numeric_max is None else max(self.numeric_max, number)
+            )
         else:
             self.all_numeric = False
 
@@ -99,7 +117,15 @@ class ColumnAccumulator:
             inferred_type=resolve_type(self.kinds),
             null_count=self.null_count,
             distinct_count=len(self.distinct) if self.distinct is not None else None,
-            min_value=str(self.numeric_min) if numeric and self.numeric_min is not None else None,
-            max_value=str(self.numeric_max) if numeric and self.numeric_max is not None else None,
+            min_value=(
+                str(self.numeric_min)
+                if numeric and self.numeric_min is not None
+                else None
+            ),
+            max_value=(
+                str(self.numeric_max)
+                if numeric and self.numeric_max is not None
+                else None
+            ),
             examples=tuple(self.examples),
         )
