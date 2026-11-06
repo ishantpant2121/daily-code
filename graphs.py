@@ -193,3 +193,54 @@ def kruskal_mst(nodes, edges):
     if len(selected) != len(nodes) - 1:
         raise ValueError("graph is disconnected")
     return total_weight, selected
+
+
+
+def prim_mst(graph, start=None):
+    """Return (total_weight, selected_edges) for an undirected connected graph.
+
+    The graph maps each node to (neighbor, weight) pairs. A sequence counter
+    prevents heap comparisons between unrelated node-label types. Raises
+    ValueError for an unknown start node or a disconnected graph.
+    """
+    adjacency = {node: list(neighbors) for node, neighbors in graph.items()}
+    nodes = list(adjacency)
+    known = set(nodes)
+    for neighbors in adjacency.values():
+        for neighbor, _ in neighbors:
+            if neighbor not in known:
+                known.add(neighbor)
+                nodes.append(neighbor)
+
+    if not nodes:
+        return 0, []
+    if start is None:
+        start = nodes[0]
+    if start not in known:
+        raise ValueError("start node is not in the graph")
+
+    sequence = count()
+    visited = {start}
+    heap = []
+    for neighbor, weight in adjacency.get(start, ()):
+        heappush(heap, (weight, next(sequence), start, neighbor))
+
+    selected = []
+    total_weight = 0
+    while heap and len(visited) < len(nodes):
+        weight, _, source, destination = heappop(heap)
+        if destination in visited:
+            continue
+        visited.add(destination)
+        selected.append((source, destination, weight))
+        total_weight += weight
+        for neighbor, edge_weight in adjacency.get(destination, ()):
+            if neighbor not in visited:
+                heappush(
+                    heap,
+                    (edge_weight, next(sequence), destination, neighbor),
+                )
+
+    if len(visited) != len(nodes):
+        raise ValueError("graph is disconnected")
+    return total_weight, selected

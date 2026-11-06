@@ -2,7 +2,7 @@
 
 import unittest
 
-from graphs import connected_components, dijkstra_path, kruskal_mst
+from graphs import connected_components, dijkstra_path, kruskal_mst, prim_mst
 
 
 class ConnectedComponentsTests(unittest.TestCase):
@@ -69,6 +69,28 @@ class KruskalMSTTests(unittest.TestCase):
             kruskal_mst([1, 2, 3], [(1, 2, 1)])
         with self.assertRaisesRegex(ValueError, "unknown node"):
             kruskal_mst([1, 2], [(1, 3, 1)])
+
+
+class PrimMSTTests(unittest.TestCase):
+    def test_builds_a_minimum_spanning_tree(self):
+        graph = {
+            "a": [("b", 1), ("c", 4)],
+            "b": [("a", 1), ("c", 2), ("d", 5)],
+            "c": [("a", 4), ("b", 2), ("d", 1)],
+            "d": [("b", 5), ("c", 1)],
+        }
+        weight, selected = prim_mst(graph, start="a")
+        self.assertEqual(weight, 4)
+        self.assertEqual(len(selected), 3)
+
+    def test_handles_empty_graph_and_rejects_invalid_start(self):
+        self.assertEqual(prim_mst({}), (0, []))
+        with self.assertRaises(ValueError):
+            prim_mst({"a": []}, start="missing")
+
+    def test_rejects_disconnected_graphs(self):
+        with self.assertRaisesRegex(ValueError, "disconnected"):
+            prim_mst({"a": [], "b": []})
 
 
 if __name__ == "__main__":
