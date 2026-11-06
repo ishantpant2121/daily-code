@@ -92,3 +92,42 @@ def heap_sort(values):
         sift_down(0, end)
 
     return result
+
+
+
+def quickselect(values, k):
+    """Return the zero-based k-th smallest value without sorting all values.
+
+    A three-way partition handles repeated values efficiently. The average
+    running time is O(n); the deterministic pivot can give O(n^2) worst case.
+    The input sequence is not modified.
+    """
+    if not 0 <= k < len(values):
+        raise ValueError("k out of range")
+
+    result = values.copy()
+    low, high = 0, len(result) - 1
+    while low <= high:
+        pivot = result[(low + high) // 2]
+        smaller = current = low
+        larger = high
+
+        while current <= larger:
+            if result[current] < pivot:
+                result[smaller], result[current] = result[current], result[smaller]
+                smaller += 1
+                current += 1
+            elif result[current] > pivot:
+                result[current], result[larger] = result[larger], result[current]
+                larger -= 1
+            else:
+                current += 1
+
+        if k < smaller:
+            high = smaller - 1
+        elif k > larger:
+            low = larger + 1
+        else:
+            return result[k]
+
+    raise RuntimeError("selection failed")
