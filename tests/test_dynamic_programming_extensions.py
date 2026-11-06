@@ -2,7 +2,7 @@
 
 import unittest
 
-from dynamic_programming import knapsack_01
+from dynamic_programming import knapsack_01, longest_common_subsequence_length
 
 
 class Knapsack01Tests(unittest.TestCase):
@@ -20,6 +20,17 @@ class Knapsack01Tests(unittest.TestCase):
             knapsack_01([1], [-1], 5)
         with self.assertRaises(ValueError):
             knapsack_01([1], [1], -1)
+
+
+class LCSLengthTests(unittest.TestCase):
+    def test_computes_common_subsequence_length(self):
+        self.assertEqual(longest_common_subsequence_length("abcde", "ace"), 3)
+        self.assertEqual(longest_common_subsequence_length("abc", "abc"), 3)
+        self.assertEqual(longest_common_subsequence_length("aaaa", "aa"), 2)
+
+    def test_handles_empty_sequences(self):
+        self.assertEqual(longest_common_subsequence_length("", "abc"), 0)
+        self.assertEqual(longest_common_subsequence_length([], []), 0)
 
 
 if __name__ == "__main__":

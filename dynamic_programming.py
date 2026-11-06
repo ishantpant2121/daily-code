@@ -63,3 +63,21 @@ def knapsack_01(values, weights, capacity):
                 best[remaining - weight] + value,
             )
     return best[capacity]
+
+
+
+def longest_common_subsequence_length(first, second):
+    """Return the LCS length in O(m*n) time and O(min(m, n)) space."""
+    if len(first) < len(second):
+        first, second = second, first
+
+    previous = [0] * (len(second) + 1)
+    for left in first:
+        current = [0]
+        for index, right in enumerate(second, start=1):
+            if left == right:
+                current.append(previous[index - 1] + 1)
+            else:
+                current.append(max(previous[index], current[-1]))
+        previous = current
+    return previous[-1]
