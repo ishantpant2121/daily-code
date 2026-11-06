@@ -47,3 +47,37 @@ def solve_n_queens(size):
 
     search(0, 0, 0)
     return solutions
+
+
+
+def combination_sum(candidates, target):
+    """Return unique combinations that sum to target using unlimited reuse.
+
+    Candidate values must be positive integers. Results are returned in
+    non-decreasing order, and duplicate input candidates do not duplicate
+    output combinations. A target of zero returns one empty combination.
+    """
+    if type(target) is not int or target < 0:
+        raise ValueError("target must be a non-negative integer")
+    values = list(candidates)
+    if any(type(value) is not int or value <= 0 for value in values):
+        raise ValueError("candidates must be positive integers")
+
+    values = sorted(set(values))
+    combinations = []
+    path = []
+
+    def search(start, remaining):
+        if remaining == 0:
+            combinations.append(path.copy())
+            return
+        for index in range(start, len(values)):
+            value = values[index]
+            if value > remaining:
+                break
+            path.append(value)
+            search(index, remaining - value)
+            path.pop()
+
+    search(0, target)
+    return combinations
