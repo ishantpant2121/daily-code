@@ -115,3 +115,42 @@ def connected_components(graph):
                     stack.append(neighbor)
         components.append(component)
     return components
+
+
+
+def dijkstra_path(graph, start, goal):
+    """Return (distance, path) for the cheapest route, or None if unreachable.
+
+    Edge weights must be non-negative. A sequence counter keeps heap entries
+    comparable even when node labels use different Python types.
+    """
+    if any(weight < 0 for edges in graph.values() for _, weight in edges):
+        raise ValueError("negative edge weight")
+
+    sequence = count()
+    distances = {start: 0.0}
+    previous = {}
+    heap = [(0.0, next(sequence), start)]
+
+    while heap:
+        distance, _, node = heappop(heap)
+        if distance != distances.get(node):
+            continue
+        if node == goal:
+            break
+
+        for neighbor, weight in graph.get(node, ()):
+            candidate = distance + weight
+            if candidate < distances.get(neighbor, float("inf")):
+                distances[neighbor] = candidate
+                previous[neighbor] = node
+                heappush(heap, (candidate, next(sequence), neighbor))
+
+    if goal not in distances:
+        return None
+
+    path = [goal]
+    while path[-1] != start:
+        path.append(previous[path[-1]])
+    path.reverse()
+    return distances[goal], path
