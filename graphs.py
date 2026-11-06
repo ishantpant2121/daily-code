@@ -82,3 +82,36 @@ def topological_sort(graph):
     if len(order) != len(indegree):
         raise ValueError("graph contains a cycle")
     return order
+
+
+
+def connected_components(graph):
+    """Return connected components of an undirected adjacency mapping.
+
+    Vertices that occur only in neighbor lists are included as well.
+    """
+    nodes = list(graph)
+    known = set(nodes)
+    for neighbors in graph.values():
+        for neighbor in neighbors:
+            if neighbor not in known:
+                known.add(neighbor)
+                nodes.append(neighbor)
+
+    visited = set()
+    components = []
+    for start in nodes:
+        if start in visited:
+            continue
+        visited.add(start)
+        stack = [start]
+        component = []
+        while stack:
+            node = stack.pop()
+            component.append(node)
+            for neighbor in graph.get(node, ()):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    stack.append(neighbor)
+        components.append(component)
+    return components
