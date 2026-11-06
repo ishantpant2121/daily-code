@@ -65,3 +65,24 @@ def rotated_search(values: Sequence[int], target: int) -> int:
             high = middle - 1
 
     return -1
+
+
+
+def search_range(values: Sequence[int], target: int) -> tuple[int, int]:
+    """Return the first and last positions of target in a sorted sequence.
+
+    Returns (-1, -1) when target is absent. Both bounds are found with binary
+    search, so the running time is O(log n).
+    """
+    first = lower_bound(values, target)
+    if first == len(values) or values[first] != target:
+        return -1, -1
+
+    low, high = first, len(values)
+    while low < high:
+        middle = (low + high) // 2
+        if values[middle] <= target:
+            low = middle + 1
+        else:
+            high = middle
+    return first, low - 1
