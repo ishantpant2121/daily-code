@@ -39,3 +39,27 @@ def longest_increasing_subsequence(values):
         else:
             tails[index] = value
     return len(tails)
+
+
+
+def knapsack_01(values, weights, capacity):
+    """Return the maximum value for 0/1 knapsack using O(capacity) space.
+
+    Each item can be selected at most once. Values and weights must have
+    matching lengths; weights and capacity must be non-negative integers.
+    """
+    if len(values) != len(weights):
+        raise ValueError("values and weights must have equal lengths")
+    if type(capacity) is not int or capacity < 0:
+        raise ValueError("capacity must be a non-negative integer")
+    if any(type(weight) is not int or weight < 0 for weight in weights):
+        raise ValueError("weights must be non-negative integers")
+
+    best = [0] * (capacity + 1)
+    for value, weight in zip(values, weights):
+        for remaining in range(capacity, weight - 1, -1):
+            best[remaining] = max(
+                best[remaining],
+                best[remaining - weight] + value,
+            )
+    return best[capacity]
