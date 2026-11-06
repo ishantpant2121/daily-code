@@ -2,7 +2,7 @@
 
 import unittest
 
-from graphs import connected_components, dijkstra_path
+from graphs import connected_components, dijkstra_path, kruskal_mst
 
 
 class ConnectedComponentsTests(unittest.TestCase):
@@ -43,6 +43,32 @@ class DijkstraPathTests(unittest.TestCase):
         self.assertEqual(dijkstra_path(graph, "start", 1), (1.0, ["start", 1]))
         with self.assertRaises(ValueError):
             dijkstra_path({"a": [("b", -1)]}, "a", "b")
+
+
+class KruskalMSTTests(unittest.TestCase):
+    def test_builds_a_minimum_spanning_tree(self):
+        nodes = ["a", "b", "c", "d"]
+        edges = [
+            ("a", "b", 1), ("b", "c", 2), ("c", "d", 3),
+            ("a", "d", 10), ("a", "c", 4), ("b", "d", 5),
+        ]
+        weight, selected = kruskal_mst(nodes, edges)
+        self.assertEqual(weight, 6)
+        self.assertEqual(len(selected), len(nodes) - 1)
+        self.assertEqual(
+            {frozenset((u, v)) for u, v, _ in selected},
+            {frozenset(("a", "b")), frozenset(("b", "c")), frozenset(("c", "d"))},
+        )
+
+    def test_supports_negative_weights_and_empty_graphs(self):
+        self.assertEqual(kruskal_mst([], []), (0, []))
+        self.assertEqual(kruskal_mst([1, 2], [(1, 2, -3)])[0], -3)
+
+    def test_rejects_disconnected_graphs_and_unknown_endpoints(self):
+        with self.assertRaisesRegex(ValueError, "disconnected"):
+            kruskal_mst([1, 2, 3], [(1, 2, 1)])
+        with self.assertRaisesRegex(ValueError, "unknown node"):
+            kruskal_mst([1, 2], [(1, 3, 1)])
 
 
 if __name__ == "__main__":

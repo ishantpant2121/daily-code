@@ -1,7 +1,10 @@
 """BFS, DFS, shortest paths, and topological ordering."""
 
 from collections import deque
+from itertools import count
 from heapq import heappop, heappush
+
+from union_find import DisjointSet
 
 
 def bfs(graph, start):
@@ -154,3 +157,39 @@ def dijkstra_path(graph, start, goal):
         path.append(previous[path[-1]])
     path.reverse()
     return distances[goal], path
+
+
+
+def kruskal_mst(nodes, edges):
+    """Return (total_weight, selected_edges) for a connected weighted graph.
+
+    Nodes are supplied explicitly so isolated vertices are not lost. Edges
+    are (source, destination, weight) tuples. Negative weights are supported.
+    Raises ValueError when an edge references an unknown node or the graph is
+    disconnected.
+    """
+    nodes = list(dict.fromkeys(nodes))
+    edges = list(edges)
+    positions = {node: index for index, node in enumerate(nodes)}
+    for source, destination, _ in edges:
+        if source not in positions or destination not in positions:
+            raise ValueError("edge references an unknown node")
+
+    if not nodes:
+        return 0, []
+
+    sets = DisjointSet(len(nodes))
+    selected = []
+    total_weight = 0
+    for source, destination, weight in sorted(edges, key=lambda edge: edge[2]):
+        if source == destination:
+            continue
+        if sets.union(positions[source], positions[destination]):
+            selected.append((source, destination, weight))
+            total_weight += weight
+            if len(selected) == len(nodes) - 1:
+                break
+
+    if len(selected) != len(nodes) - 1:
+        raise ValueError("graph is disconnected")
+    return total_weight, selected
