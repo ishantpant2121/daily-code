@@ -38,3 +38,30 @@ def fractional_knapsack(items, capacity):
         if capacity <= 0:
             break
     return total
+
+
+
+def merge_intervals(intervals):
+    """Merge overlapping or touching intervals and return them in order.
+
+    Each interval is a (start, end) pair with start <= end. Touching intervals
+    such as (1, 3) and (3, 5) are merged into (1, 5). The input is not mutated.
+    """
+    normalized = []
+    for interval in intervals:
+        try:
+            start, end = interval
+        except (TypeError, ValueError) as exc:
+            raise ValueError("each interval must contain exactly two values") from exc
+        if start > end:
+            raise ValueError("interval start cannot exceed its end")
+        normalized.append((start, end))
+
+    merged = []
+    for start, end in sorted(normalized, key=lambda item: (item[0], item[1])):
+        if not merged or start > merged[-1][1]:
+            merged.append((start, end))
+        else:
+            previous_start, previous_end = merged[-1]
+            merged[-1] = (previous_start, max(previous_end, end))
+    return merged
