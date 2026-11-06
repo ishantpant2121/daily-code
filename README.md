@@ -54,6 +54,30 @@ empty strings, **NA**, **N/A**, **null**, **none**, and **nan** (case-insensitiv
 - **day2.py**: prefix sums, binary search, and stack.
 - **day3_linked_lists.py**: typed linked-list reversal, Floyd cycle detection, and cycle-safe conversion.
 
+## Algorithm library
+
+The repository also includes focused, dependency-free implementations:
+
+- **Sorting** — merge sort, three-way quick sort, counting sort, heap sort,
+  quickselect, and merge-based inversion counting.
+- **Searching** — linear search, lower bound, duplicate-aware rotated-array
+  search, and first/last position queries for repeated values.
+- **Graphs** — BFS, DFS, Dijkstra distances and path reconstruction,
+  topological ordering, connected components, and minimum spanning trees
+  with Kruskal's and Prim's algorithms.
+- **Dynamic programming** — climbing stairs, coin change, longest increasing
+  subsequence, 0/1 knapsack, longest common subsequence length, and edit distance.
+- **Backtracking** — subsets, permutations, N-Queens, and combination sum.
+- **Greedy algorithms** — activity selection, fractional knapsack, and interval
+  merging.
+- **Trees, heaps, and union-find** — binary-tree traversals, heap-based
+  selection and merging, and disjoint-set operations.
+
+Each algorithm is implemented in its own focused module and covered by
+standard-library unittest regression tests. Graph algorithms that operate on
+undirected graphs expect symmetric adjacency lists; the MST helpers document
+their respective edge-list and adjacency-list input formats.
+
 ## Tests
 
 No third-party test runner is needed:
