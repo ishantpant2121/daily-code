@@ -78,6 +78,12 @@ standard-library unittest regression tests. Graph algorithms that operate on
 undirected graphs expect symmetric adjacency lists; the MST helpers document
 their respective edge-list and adjacency-list input formats.
 
+## Data science utility
+
+- **classification_metrics.py** — dependency-free accuracy, precision, recall,
+  F1, and confusion counts for binary classification or one-vs-rest evaluation.
+  Inputs may be iterables; the zero-division policy is explicit.
+
 ## Tests
 
 No third-party test runner is needed:

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added dependency-free binary and one-vs-rest classification metrics with explicit zero-division handling.
+
 - Added heap sort, quickselect, inversion counting, and duplicate-aware search-range queries.
 - Added connected components, Dijkstra path reconstruction, topological sorting,
   and Kruskal/Prim minimum spanning trees.
