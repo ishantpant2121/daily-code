@@ -24,3 +24,7 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Smoke-test installed CLI
         run: csv-inspector examples/sales.csv --strict
+      - name: Smoke-test installed learning modules outside the checkout
+        run: |
+          cd /tmp
+          python -c "from data_splitting import train_test_split; from pathfinding import a_star; from preprocessing import StandardScaler; from regression_metrics import mean_squared_error; assert mean_squared_error([1, 2], [1, 2]) == 0.0; assert len(train_test_split([1, 2, 3], random_state=1)) == 2; assert StandardScaler().fit_transform([[1], [2]])[0][0] < 0; assert a_star({'a': [('b', 1)], 'b': []}, 'a', 'b') == (1.0, ['a', 'b'])"
