@@ -38,6 +38,13 @@ class DijkstraPathTests(unittest.TestCase):
         self.assertEqual(dijkstra_path({}, "same", "same"), (0.0, ["same"]))
         self.assertIsNone(dijkstra_path({"a": [], "b": []}, "a", "b"))
 
+    def test_dijkstra_handles_incomparable_labels_at_equal_distance(self):
+        graph = {"start": [(1, 1), ("other", 1)], 1: [], "other": []}
+        self.assertEqual(
+            dijkstra(graph, "start"),
+            {"start": 0.0, 1: 1.0, "other": 1.0},
+        )
+
     def test_handles_incomparable_node_labels_and_rejects_negative_edges(self):
         graph = {"start": [(1, 1), ("other", 1)], 1: [], "other": []}
         self.assertEqual(dijkstra_path(graph, "start", 1), (1.0, ["start", 1]))

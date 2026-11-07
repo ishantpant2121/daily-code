@@ -38,17 +38,18 @@ def dfs(graph, start):
 def dijkstra(graph, start):
     if any(weight < 0 for edges in graph.values() for _, weight in edges):
         raise ValueError("negative edge weight")
+    sequence = count()
     distances = {start: 0.0}
-    heap = [(0.0, start)]
+    heap = [(0.0, next(sequence), start)]
     while heap:
-        distance, node = heappop(heap)
+        distance, _, node = heappop(heap)
         if distance != distances.get(node):
             continue
         for neighbor, weight in graph.get(node, []):
             candidate = distance + weight
             if candidate < distances.get(neighbor, float("inf")):
                 distances[neighbor] = candidate
-                heappush(heap, (candidate, neighbor))
+                heappush(heap, (candidate, next(sequence), neighbor))
     return distances
 
 
