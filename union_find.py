@@ -37,4 +37,3 @@ class DisjointSet:
     def connected(self, first, second):
         """Return whether two elements currently belong to the same set."""
         return self.find(first) == self.find(second)
-}
