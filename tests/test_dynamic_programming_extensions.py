@@ -3,10 +3,27 @@
 import unittest
 
 from dynamic_programming import (
+    climbing_stairs,
+    coin_change,
     edit_distance,
     knapsack_01,
     longest_common_subsequence_length,
 )
+
+
+class CoinChangeValidationTests(unittest.TestCase):
+    def test_validates_integer_inputs(self):
+        for invalid in (-1, 1.5, True):
+            with self.subTest(stairs=invalid):
+                with self.assertRaises(ValueError):
+                    climbing_stairs(invalid)
+            with self.subTest(amount=invalid):
+                with self.assertRaises(ValueError):
+                    coin_change([1, 2], invalid)
+
+    def test_coin_change_deduplicates_generator_denominations(self):
+        coins = (coin for coin in [1, 2, 2, 5, 5])
+        self.assertEqual(coin_change(coins, 11), 3)
 
 
 class Knapsack01Tests(unittest.TestCase):

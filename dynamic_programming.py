@@ -2,8 +2,8 @@
 
 
 def climbing_stairs(n):
-    if n < 0:
-        raise ValueError("n must be non-negative")
+    if type(n) is not int or n < 0:
+        raise ValueError("n must be a non-negative integer")
     previous, current = 1, 0
     for _ in range(n):
         previous, current = previous + current, previous
@@ -16,9 +16,12 @@ def coin_change(coins, amount):
     Coins may be supplied as any iterable, including a one-shot generator.
     Returns -1 when the amount cannot be formed.
     """
+    if type(amount) is not int or amount < 0:
+        raise ValueError("amount must be a non-negative integer")
     coins = list(coins)
-    if amount < 0 or any(type(coin) is not int or coin <= 0 for coin in coins):
-        raise ValueError("invalid coin input")
+    if any(type(coin) is not int or coin <= 0 for coin in coins):
+        raise ValueError("coins must be positive integers")
+    coins = sorted(set(coins))
 
     dp = [0] + [amount + 1] * amount
     for total in range(1, amount + 1):
