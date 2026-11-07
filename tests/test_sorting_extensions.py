@@ -2,7 +2,7 @@
 
 import unittest
 
-from sorting import count_inversions, heap_sort, quickselect
+from sorting import count_inversions, heap_sort, quickselect, quick_sort
 
 
 class HeapSortTests(unittest.TestCase):
@@ -55,6 +55,18 @@ class InversionCountTests(unittest.TestCase):
         values = [3, 1, 2]
         self.assertEqual(count_inversions(values), 2)
         self.assertEqual(values, [3, 1, 2])
+
+
+class QuickSortScalabilityTests(unittest.TestCase):
+    def test_sorts_large_reverse_order_input(self):
+        values = list(range(12000, 0, -1))
+        self.assertEqual(quick_sort(values), list(range(1, 12001)))
+
+    def test_handles_duplicates_and_preserves_the_input(self):
+        values = [3, 1, 2, 3, -1, 2, 2]
+        original = values.copy()
+        self.assertEqual(quick_sort(values), [-1, 1, 2, 2, 2, 3, 3])
+        self.assertEqual(values, original)
 
 
 if __name__ == "__main__":

@@ -23,29 +23,46 @@ def merge_sort(values):
 
 
 def quick_sort(values):
-    """Return a sorted copy using an in-place three-way partition."""
+    """Return a sorted copy using iterative three-way partitioning.
+
+    Processing the smaller partition immediately keeps the explicit stack
+    bounded by O(log n), even when a pivot produces highly unbalanced splits.
+    """
     result = values.copy()
+    pending = [(0, len(result) - 1)]
 
-    def partition(low, high):
-        if low >= high:
-            return
-        pivot = result[(low + high) // 2]
-        smaller = current = low
-        larger = high
-        while current <= larger:
-            if result[current] < pivot:
-                result[smaller], result[current] = result[current], result[smaller]
-                smaller += 1
-                current += 1
-            elif result[current] > pivot:
-                result[current], result[larger] = result[larger], result[current]
-                larger -= 1
+    while pending:
+        low, high = pending.pop()
+        while low < high:
+            pivot = result[(low + high) // 2]
+            smaller = current = low
+            larger = high
+
+            while current <= larger:
+                if result[current] < pivot:
+                    result[smaller], result[current] = result[current], result[smaller]
+                    smaller += 1
+                    current += 1
+                elif result[current] > pivot:
+                    result[current], result[larger] = result[larger], result[current]
+                    larger -= 1
+                else:
+                    current += 1
+
+            left = (low, smaller - 1)
+            right = (larger + 1, high)
+            left_size = left[1] - left[0] + 1
+            right_size = right[1] - right[0] + 1
+
+            if left_size <= right_size:
+                if right_size > 1:
+                    pending.append(right)
+                low, high = left
             else:
-                current += 1
-        partition(low, smaller - 1)
-        partition(larger + 1, high)
+                if left_size > 1:
+                    pending.append(left)
+                low, high = right
 
-    partition(0, len(result) - 1)
     return result
 
 
