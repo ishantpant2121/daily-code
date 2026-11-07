@@ -4,14 +4,40 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "daily-code-lab"
-version = "0.1.0"
-description = "DSA examples and a dependency-free CSV profiling CLI"
+version = "0.2.0"
+description = "DSA examples, data-science utilities, and a dependency-free CSV profiling CLI"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
 [project.scripts]
 csv-inspector = "csv_inspector.cli:main"
+
+[tool.setuptools]
+py-modules = [
+    "backtracking",
+    "classification_metrics",
+    "data_splitting",
+    "day1",
+    "day2",
+    "day3_linked_lists",
+    "dynamic_programming",
+    "graphs",
+    "greedy",
+    "heaps",
+    "linear_regression",
+    "matrix_algorithms",
+    "pathfinding",
+    "preprocessing",
+    "recursion",
+    "regression_metrics",
+    "searching",
+    "sorting",
+    "statistics_utils",
+    "string_algorithms",
+    "trees",
+    "union_find",
+]
 
 [tool.setuptools.packages.find]
 include = ["csv_inspector*"]
