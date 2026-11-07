@@ -2,7 +2,7 @@
 
 import unittest
 
-from graphs import connected_components, dijkstra_path, kruskal_mst, prim_mst
+from graphs import connected_components, dijkstra, dijkstra_path, kruskal_mst, prim_mst
 
 
 class ConnectedComponentsTests(unittest.TestCase):
