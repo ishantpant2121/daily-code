@@ -366,3 +366,64 @@ def floyd_warshall(graph):
     if any(distances[node][node] < 0 for node in nodes):
         raise ValueError("graph contains a negative-weight cycle")
     return distances
+
+
+def strongly_connected_components(graph):
+    """Return strongly connected components of a directed graph.
+
+    Vertices appearing only in neighbor lists are included. The iterative
+    Kosaraju traversal avoids Python recursion-depth limits. Component and
+    vertex order follow the input's insertion order where possible.
+    Time: O(V + E); auxiliary space: O(V + E).
+    """
+    nodes = list(graph)
+    known = set(nodes)
+    for neighbors in graph.values():
+        for neighbor in neighbors:
+            if neighbor not in known:
+                known.add(neighbor)
+                nodes.append(neighbor)
+
+    adjacency = {node: list(graph.get(node, ())) for node in nodes}
+    visited = set()
+    finish_order = []
+
+    for root in nodes:
+        if root in visited:
+            continue
+        visited.add(root)
+        stack = [(root, iter(adjacency[root]))]
+        while stack:
+            node, neighbors = stack[-1]
+            try:
+                neighbor = next(neighbors)
+            except StopIteration:
+                finish_order.append(node)
+                stack.pop()
+            else:
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    stack.append((neighbor, iter(adjacency[neighbor])))
+
+    reverse_graph = {node: [] for node in nodes}
+    for source, neighbors in adjacency.items():
+        for destination in neighbors:
+            reverse_graph[destination].append(source)
+
+    assigned = set()
+    components = []
+    for root in reversed(finish_order):
+        if root in assigned:
+            continue
+        assigned.add(root)
+        stack = [root]
+        component = []
+        while stack:
+            node = stack.pop()
+            component.append(node)
+            for neighbor in reverse_graph[node]:
+                if neighbor not in assigned:
+                    assigned.add(neighbor)
+                    stack.append(neighbor)
+        components.append(component)
+    return components
