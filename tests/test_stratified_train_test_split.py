@@ -17,11 +17,8 @@ class StratifiedTrainTestSplitTests(unittest.TestCase):
             {label: y_test.count(label) for label in set(labels)},
             {"major": 4, "minor": 2},
         )
-        self.assertEqual(
-            [features.index(value) for value in x_train],
-            [labels.index(value) for value in y_train] if False else
-            [features.index(value) for value in x_train],
-        )
+        for index, label in zip(x_train + x_test, y_train + y_test):
+            self.assertEqual(label, "major" if index < 14 else "minor")
         self.assertEqual(sorted(x_train + x_test), features)
 
     def test_is_reproducible_and_can_preserve_original_order(self):
