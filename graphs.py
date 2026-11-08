@@ -275,3 +275,47 @@ def prim_mst(graph, start=None):
     if len(visited) != len(nodes):
         raise ValueError("graph is disconnected")
     return total_weight, selected
+
+
+def bellman_ford(graph, start):
+    """Return shortest distances from start, supporting negative edge weights.
+
+    Unreachable vertices are omitted, matching dijkstra(). A reachable
+    negative-weight cycle raises ValueError. Edge weights must be finite real
+    numbers. Time: O(V * E); auxiliary space: O(V + E).
+    """
+    nodes = list(graph)
+    known = set(nodes)
+    edges = []
+    for source, neighbors in graph.items():
+        for destination, weight in neighbors:
+            if destination not in known:
+                known.add(destination)
+                nodes.append(destination)
+            edges.append(
+                (source, destination, _validated_weight(weight, allow_negative=True))
+            )
+    if start not in known:
+        nodes.append(start)
+        known.add(start)
+
+    distances = {start: 0.0}
+    for _ in range(max(0, len(nodes) - 1)):
+        updated = False
+        for source, destination, weight in edges:
+            if source not in distances:
+                continue
+            candidate = distances[source] + weight
+            if candidate < distances.get(destination, float("inf")):
+                distances[destination] = candidate
+                updated = True
+        if not updated:
+            break
+
+    for source, destination, weight in edges:
+        if (
+            source in distances
+            and distances[source] + weight < distances.get(destination, float("inf"))
+        ):
+            raise ValueError("graph contains a reachable negative-weight cycle")
+    return distances
