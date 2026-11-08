@@ -1,10 +1,27 @@
 """BFS, DFS, shortest paths, and topological ordering."""
 
 from collections import deque
-from itertools import count
 from heapq import heappop, heappush
+from itertools import count
+import math
+from numbers import Real
 
 from union_find import DisjointSet
+
+
+def _validated_weight(value, *, allow_negative):
+    """Convert an edge weight to a finite float and enforce its sign policy."""
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ValueError("edge weights must be real numbers")
+    try:
+        number = float(value)
+    except (OverflowError, ValueError):
+        raise ValueError("edge weights must be finite real numbers") from None
+    if not math.isfinite(number):
+        raise ValueError("edge weights must be finite real numbers")
+    if not allow_negative and number < 0:
+        raise ValueError("edge weights must be non-negative")
+    return number
 
 
 def bfs(graph, start):
@@ -36,8 +53,13 @@ def dfs(graph, start):
 
 
 def dijkstra(graph, start):
-    if any(weight < 0 for edges in graph.values() for _, weight in edges):
-        raise ValueError("negative edge weight")
+    validated_graph = {
+        node: [
+            (neighbor, _validated_weight(weight, allow_negative=False))
+            for neighbor, weight in edges
+        ]
+        for node, edges in graph.items()
+    }
     sequence = count()
     distances = {start: 0.0}
     heap = [(0.0, next(sequence), start)]
@@ -45,7 +67,7 @@ def dijkstra(graph, start):
         distance, _, node = heappop(heap)
         if distance != distances.get(node):
             continue
-        for neighbor, weight in graph.get(node, []):
+        for neighbor, weight in validated_graph.get(node, ()):
             candidate = distance + weight
             if candidate < distances.get(neighbor, float("inf")):
                 distances[neighbor] = candidate
@@ -88,7 +110,6 @@ def topological_sort(graph):
     return order
 
 
-
 def connected_components(graph):
     """Return connected components of an undirected adjacency mapping.
 
@@ -121,16 +142,19 @@ def connected_components(graph):
     return components
 
 
-
 def dijkstra_path(graph, start, goal):
     """Return (distance, path) for the cheapest route, or None if unreachable.
 
-    Edge weights must be non-negative. A sequence counter keeps heap entries
-    comparable even when node labels use different Python types.
+    Edge weights must be finite, real, and non-negative. A sequence counter
+    keeps heap entries comparable even when node labels use different types.
     """
-    if any(weight < 0 for edges in graph.values() for _, weight in edges):
-        raise ValueError("negative edge weight")
-
+    validated_graph = {
+        node: [
+            (neighbor, _validated_weight(weight, allow_negative=False))
+            for neighbor, weight in edges
+        ]
+        for node, edges in graph.items()
+    }
     sequence = count()
     distances = {start: 0.0}
     previous = {}
@@ -143,7 +167,7 @@ def dijkstra_path(graph, start, goal):
         if node == goal:
             break
 
-        for neighbor, weight in graph.get(node, ()):
+        for neighbor, weight in validated_graph.get(node, ()):
             candidate = distance + weight
             if candidate < distances.get(neighbor, float("inf")):
                 distances[neighbor] = candidate
@@ -160,17 +184,18 @@ def dijkstra_path(graph, start, goal):
     return distances[goal], path
 
 
-
 def kruskal_mst(nodes, edges):
     """Return (total_weight, selected_edges) for a connected weighted graph.
 
     Nodes are supplied explicitly so isolated vertices are not lost. Edges
-    are (source, destination, weight) tuples. Negative weights are supported.
-    Raises ValueError when an edge references an unknown node or the graph is
-    disconnected.
+    are (source, destination, weight) tuples. Finite negative weights are
+    supported. Unknown endpoints and disconnected graphs raise ValueError.
     """
     nodes = list(dict.fromkeys(nodes))
-    edges = list(edges)
+    edges = [
+        (source, destination, _validated_weight(weight, allow_negative=True))
+        for source, destination, weight in edges
+    ]
     positions = {node: index for index, node in enumerate(nodes)}
     for source, destination, _ in edges:
         if source not in positions or destination not in positions:
@@ -181,7 +206,7 @@ def kruskal_mst(nodes, edges):
 
     sets = DisjointSet(len(nodes))
     selected = []
-    total_weight = 0
+    total_weight = 0.0
     for source, destination, weight in sorted(edges, key=lambda edge: edge[2]):
         if source == destination:
             continue
@@ -196,15 +221,20 @@ def kruskal_mst(nodes, edges):
     return total_weight, selected
 
 
-
 def prim_mst(graph, start=None):
     """Return (total_weight, selected_edges) for an undirected connected graph.
 
-    The graph maps each node to (neighbor, weight) pairs. A sequence counter
-    prevents heap comparisons between unrelated node-label types. Raises
-    ValueError for an unknown start node or a disconnected graph.
+    The graph maps each node to (neighbor, weight) pairs. Finite negative
+    weights are supported. A sequence counter prevents heap comparisons
+    between unrelated node-label types.
     """
-    adjacency = {node: list(neighbors) for node, neighbors in graph.items()}
+    adjacency = {
+        node: [
+            (neighbor, _validated_weight(weight, allow_negative=True))
+            for neighbor, weight in neighbors
+        ]
+        for node, neighbors in graph.items()
+    }
     nodes = list(adjacency)
     known = set(nodes)
     for neighbors in adjacency.values():
@@ -227,7 +257,7 @@ def prim_mst(graph, start=None):
         heappush(heap, (weight, next(sequence), start, neighbor))
 
     selected = []
-    total_weight = 0
+    total_weight = 0.0
     while heap and len(visited) < len(nodes):
         weight, _, source, destination = heappop(heap)
         if destination in visited:
