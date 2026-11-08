@@ -90,3 +90,24 @@ def pearson_correlation(first: Iterable[Real], second: Iterable[Real]) -> float:
         raise ValueError("correlation is undefined for a constant input")
     cross = math.fsum((x - x_mean) * (y - y_mean) for x, y in zip(left, right))
     return cross / math.sqrt(x_ss * y_ss)
+
+
+def quantile(values: Iterable[Real], q: Real) -> float:
+    """Return the q quantile using linear interpolation between sorted values.
+
+    q is a fraction in [0, 1]. The interpolation uses position (n - 1) * q.
+    """
+    if isinstance(q, bool) or not isinstance(q, Real):
+        raise ValueError("q must be a real number between 0 and 1")
+    try:
+        fraction = float(q)
+    except (OverflowError, ValueError):
+        raise ValueError("q must be a finite number between 0 and 1") from None
+    if not math.isfinite(fraction) or not 0 <= fraction <= 1:
+        raise ValueError("q must be a finite number between 0 and 1")
+    numbers = sorted(_values(values, "values"))
+    position = (len(numbers) - 1) * fraction
+    lower = int(position)
+    upper = min(lower + 1, len(numbers) - 1)
+    weight = position - lower
+    return math.fsum((numbers[lower] * (1.0 - weight), numbers[upper] * weight))
