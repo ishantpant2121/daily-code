@@ -319,3 +319,50 @@ def bellman_ford(graph, start):
         ):
             raise ValueError("graph contains a reachable negative-weight cycle")
     return distances
+
+
+def floyd_warshall(graph):
+    """Return all-pairs shortest distances for a directed weighted graph.
+
+    The result includes every vertex pair; unreachable pairs have infinity.
+    Finite negative edges are supported, but any negative cycle raises
+    ValueError. Node order follows first appearance in the input mapping and
+    its neighbor lists. Time: O(V^3); space: O(V^2).
+    """
+    nodes = list(graph)
+    known = set(nodes)
+    for neighbors in graph.values():
+        for neighbor, _ in neighbors:
+            if neighbor not in known:
+                known.add(neighbor)
+                nodes.append(neighbor)
+
+    distances = {
+        source: {destination: float("inf") for destination in nodes}
+        for source in nodes
+    }
+    for node in nodes:
+        distances[node][node] = 0.0
+
+    for source, neighbors in graph.items():
+        for destination, weight in neighbors:
+            numeric_weight = _validated_weight(weight, allow_negative=True)
+            if numeric_weight < distances[source][destination]:
+                distances[source][destination] = numeric_weight
+
+    for middle in nodes:
+        for source in nodes:
+            first_leg = distances[source][middle]
+            if math.isinf(first_leg):
+                continue
+            for destination in nodes:
+                second_leg = distances[middle][destination]
+                if math.isinf(second_leg):
+                    continue
+                candidate = first_leg + second_leg
+                if candidate < distances[source][destination]:
+                    distances[source][destination] = candidate
+
+    if any(distances[node][node] < 0 for node in nodes):
+        raise ValueError("graph contains a negative-weight cycle")
+    return distances
