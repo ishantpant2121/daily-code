@@ -154,3 +154,58 @@ def confusion_matrix(
         total = len(actual)
         matrix = [[value / total for value in row] for row in matrix]
     return matrix
+
+
+
+def roc_auc_score(
+    y_true: Iterable[Any],
+    y_score: Iterable[Real],
+    *,
+    positive_label: Any = 1,
+) -> float:
+    """Return binary/one-vs-rest ROC AUC using average ranks for tied scores.
+
+    Scores must be finite real numbers. Every label other than positive_label
+    is treated as negative. Both positive and negative examples are required.
+    Inputs may be one-shot iterables.
+    """
+    missing = object()
+    pairs: list[tuple[float, bool]] = []
+    positives = negatives = 0
+    for label, score in zip_longest(y_true, y_score, fillvalue=missing):
+        if label is missing or score is missing:
+            raise ValueError("y_true and y_score must have equal lengths")
+        if isinstance(score, bool) or not isinstance(score, Real):
+            raise ValueError("scores must be real numbers")
+        try:
+            numeric_score = float(score)
+        except (OverflowError, ValueError):
+            raise ValueError("scores must be finite real numbers") from None
+        if not math.isfinite(numeric_score):
+            raise ValueError("scores must be finite real numbers")
+        is_positive = label == positive_label
+        positives += int(is_positive)
+        negatives += int(not is_positive)
+        pairs.append((numeric_score, is_positive))
+
+    if not pairs:
+        raise ValueError("y_true and y_score must not be empty")
+    if not positives or not negatives:
+        raise ValueError("ROC AUC requires both positive and negative examples")
+
+    pairs.sort(key=lambda item: item[0])
+    positive_rank_sum = 0.0
+    index = 0
+    while index < len(pairs):
+        end = index + 1
+        while end < len(pairs) and pairs[end][0] == pairs[index][0]:
+            end += 1
+        average_rank = ((index + 1) + end) / 2.0
+        positive_rank_sum += average_rank * sum(
+            1 for _, is_positive in pairs[index:end] if is_positive
+        )
+        index = end
+
+    return (
+        positive_rank_sum - positives * (positives + 1) / 2.0
+    ) / (positives * negatives)
