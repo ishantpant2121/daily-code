@@ -1,5 +1,7 @@
 """Basic matrix transformations and multiplication using Python sequences."""
 
+import math
+from numbers import Real
 from typing import Sequence, TypeVar
 
 T = TypeVar("T")
@@ -16,6 +18,25 @@ def _rectangular(matrix: Sequence[Sequence[T]], *, allow_empty: bool = True) -> 
     return len(matrix), columns
 
 
+def _numeric_matrix(matrix: Sequence[Sequence[Real]], name: str) -> list[list[float]]:
+    _rectangular(matrix, allow_empty=False)
+    result = []
+    for row in matrix:
+        converted = []
+        for value in row:
+            if isinstance(value, bool) or not isinstance(value, Real):
+                raise ValueError(f"{name} must contain real numbers")
+            try:
+                number = float(value)
+            except (OverflowError, ValueError):
+                raise ValueError(f"{name} must contain finite real numbers") from None
+            if not math.isfinite(number):
+                raise ValueError(f"{name} must contain finite real numbers")
+            converted.append(number)
+        result.append(converted)
+    return result
+
+
 def transpose(matrix: Sequence[Sequence[T]]) -> list[list[T]]:
     """Return a transposed copy of a rectangular matrix."""
     rows, columns = _rectangular(matrix)
@@ -23,18 +44,32 @@ def transpose(matrix: Sequence[Sequence[T]]) -> list[list[T]]:
 
 
 def matrix_multiply(
-    first: Sequence[Sequence[float]],
-    second: Sequence[Sequence[float]],
+    first: Sequence[Sequence[Real]],
+    second: Sequence[Sequence[Real]],
 ) -> list[list[float]]:
-    """Multiply two compatible rectangular matrices."""
-    first_rows, first_columns = _rectangular(first, allow_empty=False)
-    second_rows, second_columns = _rectangular(second, allow_empty=False)
+    """Multiply two compatible rectangular matrices of finite real numbers."""
+    left = _numeric_matrix(first, "first matrix")
+    right = _numeric_matrix(second, "second matrix")
+    first_rows, first_columns = _rectangular(left, allow_empty=False)
+    second_rows, second_columns = _rectangular(right, allow_empty=False)
     if first_columns != second_rows:
         raise ValueError("matrix dimensions are not compatible for multiplication")
-    return [
-        [sum(first[row][k] * second[k][column] for k in range(first_columns)) for column in range(second_columns)]
-        for row in range(first_rows)
-    ]
+    result = []
+    for row in range(first_rows):
+        output_row = []
+        for column in range(second_columns):
+            try:
+                value = math.fsum(
+                    left[row][index] * right[index][column]
+                    for index in range(first_columns)
+                )
+            except OverflowError:
+                raise ValueError("matrix product exceeds finite float range") from None
+            if not math.isfinite(value):
+                raise ValueError("matrix product exceeds finite float range")
+            output_row.append(value)
+        result.append(output_row)
+    return result
 
 
 def spiral_order(matrix: Sequence[Sequence[T]]) -> list[T]:
