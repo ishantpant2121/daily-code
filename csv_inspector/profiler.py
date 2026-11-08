@@ -14,7 +14,7 @@ class CSVInspectionError(ValueError):
 
 def _choose_delimiter(sample: str, requested: str | None) -> str:
     if requested is not None:
-        if len(requested) != 1:
+        if not isinstance(requested, str) or len(requested) != 1:
             raise CSVInspectionError("delimiter must be exactly one character")
         if requested in {"\r", "\n", '"'}:
             raise CSVInspectionError(
@@ -25,6 +25,21 @@ def _choose_delimiter(sample: str, requested: str | None) -> str:
         return csv.Sniffer().sniff(sample, delimiters=",;\t|").delimiter
     except csv.Error:
         return ","
+
+
+def _normalize_missing_values(values: Iterable[str]) -> frozenset[str]:
+    if isinstance(values, str):
+        raise ValueError("missing_values must be an iterable of strings, not a string")
+    try:
+        iterator = iter(values)
+    except TypeError:
+        raise ValueError("missing_values must be an iterable of strings") from None
+    normalized = set()
+    for value in iterator:
+        if not isinstance(value, str):
+            raise ValueError("missing_values must contain only strings")
+        normalized.add(value.strip().casefold())
+    return frozenset(normalized)
 
 
 def profile_csv(
@@ -45,8 +60,16 @@ def profile_csv(
     are case-insensitive and are combined with the built-in defaults. Only the
     first max_issues diagnostics are retained, while the total is preserved.
     """
-    if max_issues < 1:
-        raise ValueError("max_issues must be at least 1")
+    if type(max_issues) is not int or max_issues < 1:
+        raise ValueError("max_issues must be a positive integer")
+    if type(track_distinct) is not bool:
+        raise ValueError("track_distinct must be a boolean")
+    if type(track_duplicates) is not bool:
+        raise ValueError("track_duplicates must be a boolean")
+    if not isinstance(encoding, str) or not encoding.strip():
+        raise ValueError("encoding must be a non-empty string")
+    missing_markers = DEFAULT_MISSING_VALUES | _normalize_missing_values(missing_values)
+
     source = Path(path)
     if not source.is_file():
         raise FileNotFoundError(f"CSV file does not exist: {source}")
@@ -57,9 +80,7 @@ def profile_csv(
     selected_delimiter = _choose_delimiter(sample, delimiter)
     issues: list[RowIssue] = []
     issue_count = 0
-    missing_markers = DEFAULT_MISSING_VALUES | frozenset(
-        value.strip().casefold() for value in missing_values
-    )
+
     seen_rows: set[tuple[str, ...]] | None = set() if track_duplicates else None
     duplicate_row_count = 0
 
