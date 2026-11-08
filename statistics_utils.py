@@ -32,7 +32,7 @@ def median(values: Iterable[Real]) -> float:
     middle = len(numbers) // 2
     if len(numbers) % 2:
         return numbers[middle]
-    return (numbers[middle - 1] + numbers[middle]) / 2
+    return numbers[middle - 1] / 2.0 + numbers[middle] / 2.0
 
 
 def variance(values: Iterable[Real], *, sample: bool = True) -> float:
@@ -52,12 +52,7 @@ def standard_deviation(values: Iterable[Real], *, sample: bool = True) -> float:
     return math.sqrt(variance(values, sample=sample))
 
 
-def covariance(
-    first: Iterable[Real],
-    second: Iterable[Real],
-    *,
-    sample: bool = True,
-) -> float:
+def covariance(first: Iterable[Real], second: Iterable[Real], *, sample: bool = True) -> float:
     """Return sample or population covariance for paired observations."""
     if type(sample) is not bool:
         raise ValueError("sample must be a boolean")
@@ -67,10 +62,8 @@ def covariance(
     for x_value, y_value in zip_longest(first, second, fillvalue=missing):
         if x_value is missing or y_value is missing:
             raise ValueError("inputs must have equal lengths")
-        x = _values([x_value], "first")
-        y = _values([y_value], "second")
-        left.append(x[0])
-        right.append(y[0])
+        left.append(_values([x_value], "first")[0])
+        right.append(_values([y_value], "second")[0])
     if not left:
         raise ValueError("inputs must not be empty")
     denominator = len(left) - 1 if sample else len(left)
