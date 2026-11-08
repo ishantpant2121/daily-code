@@ -38,6 +38,8 @@ class DescriptiveStatisticsTests(unittest.TestCase):
             lambda: variance([1]),
             lambda: variance([1, 2], sample=1),
             lambda: mean([1, float("nan")]),
+            lambda: mean([10**400]),
+            lambda: covariance([10**400, 1], [1, 2]),
             lambda: median([True]),
             lambda: covariance([1, 2], [1]),
             lambda: pearson_correlation([1, 1], [2, 3]),
