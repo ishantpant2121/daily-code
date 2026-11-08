@@ -62,66 +62,64 @@ after trim).
 
 The repository includes focused, dependency-free implementations:
 
-- **Sorting** — merge sort, three-way quick sort, counting sort, heap sort,
-  quickselect, and merge-based inversion counting.
+- **Sorting** — merge sort, three-way quick sort, counting sort (including
+  one-shot iterables), heap sort, quickselect, and merge-based inversion counting.
 - **Searching** — linear search, lower bound, duplicate-aware rotated-array
   search, and first/last position queries for repeated values.
-- **Graphs** — BFS, DFS, Dijkstra distances and path reconstruction,
-  topological ordering, connected components, and minimum spanning trees
-  with Kruskal's and Prim's algorithms.
+- **Graphs** — BFS, DFS, Dijkstra distances and path reconstruction, Bellman-Ford,
+  Floyd-Warshall, topological ordering, connected components, iterative strongly
+  connected components, and minimum spanning trees with Kruskal and Prim.
 - **Pathfinding** — A* shortest-path search with optional heuristic and
   non-negative weighted edges.
 - **Dynamic programming** — climbing stairs, coin change, longest increasing
-  subsequence, 0/1 knapsack, longest common subsequence length, and edit distance.
+  subsequence, 0/1 knapsack, LCS length and sequence reconstruction, and edit distance.
 - **Backtracking** — subsets, permutations, N-Queens, and combination sum.
 - **Greedy algorithms** — activity selection, fractional knapsack, and interval merging.
 - **Trees, heaps, and union-find** — binary-tree traversals, heap-based
   selection and merging, and disjoint-set operations.
-- **Strings and matrices** — KMP matching, prefix and Z functions, matrix
-  multiplication, transpose, clockwise rotation, and spiral traversal.
+- **Strings and matrices** — KMP and Rabin-Karp matching, prefix and Z functions,
+  finite-real matrix multiplication, transpose, clockwise rotation, and spiral traversal.
 
-Each algorithm is implemented in a focused module and covered by standard-library
-unittest regression tests. Graph algorithms that operate on undirected graphs
-expect symmetric adjacency lists; the MST helpers document their respective
-edge-list and adjacency-list input formats.
+Graph algorithms that operate on undirected graphs expect symmetric adjacency
+lists. Dijkstra requires finite non-negative real weights; Bellman-Ford and
+Floyd-Warshall support finite negative edges and detect reachable or global
+negative cycles respectively. MST helpers support finite negative weights.
 
 ## Data science and machine learning utilities
 
-- **classification_metrics.py** — dependency-free accuracy, precision, recall,
-  F1, and confusion counts for binary classification or one-vs-rest evaluation.
+- **classification_metrics.py** — accuracy, precision, recall, F1, confusion
+  counts, multiclass confusion matrices, and tie-aware ROC AUC for binary or
+  one-vs-rest evaluation.
 - **regression_metrics.py** — mean absolute error, mean squared error, root
   mean squared error, and R-squared with an explicit constant-target policy.
-- **data_splitting.py** — reproducible train/test splits and balanced K-fold
-  index generation using the standard library.
+- **data_splitting.py** — reproducible train/test splits, stratified holdout
+  splits, balanced K-fold indices, and stratified K-fold indices.
 - **preprocessing.py** — fit/transform/inverse-transform implementations of
-  MinMaxScaler and StandardScaler, including constant-feature handling.
+  MinMaxScaler, StandardScaler, RobustScaler, and polynomial feature expansion.
+- **knn_classifier.py** — a dependency-free K-nearest-neighbors classifier with
+  Euclidean or Manhattan distance, uniform or inverse-distance voting, and
+  normalized class probabilities.
 - **linear_regression.py** — simple univariate ordinary least-squares regression.
-- **statistics_utils.py** — mean, median, sample/population variance, standard
-  deviation, covariance, and Pearson correlation.
+- **statistics_utils.py** — mean, median, interpolated quantiles, sample/population
+  variance, standard deviation, covariance, and Pearson correlation.
 
-Example workflow:
+Example classification workflow:
 
 ~~~python
-from data_splitting import train_test_split
-from linear_regression import SimpleLinearRegression
+from data_splitting import stratified_train_test_split
+from knn_classifier import KNNClassifier
 from preprocessing import StandardScaler
-from regression_metrics import mean_squared_error
 
-features = [[1], [2], [3], [4], [5], [6]]
-targets = [3, 5, 7, 9, 11, 13]
-x_train, x_test, y_train, y_test = train_test_split(
-    features, targets, test_size=0.33, random_state=42
+features = [[0.0, 1.0], [0.2, 0.8], [4.8, 5.0], [5.2, 4.9]]
+labels = ["near", "near", "far", "far"]
+x_train, x_test, y_train, y_test = stratified_train_test_split(
+    features, labels, labels=labels, test_size=0.5, random_state=42
 )
 
 scaler = StandardScaler().fit(x_train)
-x_train_scaled = scaler.transform(x_train)
-x_test_scaled = scaler.transform(x_test)
-
-model = SimpleLinearRegression().fit(
-    [row[0] for row in x_train_scaled], y_train
-)
-predictions = model.predict([row[0] for row in x_test_scaled])
-print(mean_squared_error(y_test, predictions))
+model = KNNClassifier(n_neighbors=1).fit(scaler.transform(x_train), y_train)
+predictions = model.predict(scaler.transform(x_test))
+print(predictions)
 ~~~
 
 Fit preprocessing steps on training data only, then apply the fitted transform

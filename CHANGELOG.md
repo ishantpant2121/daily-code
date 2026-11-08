@@ -2,18 +2,18 @@
 
 ## Unreleased
 
-- Added dependency-free binary and one-vs-rest classification metrics with explicit zero-division handling.
-
-- Added heap sort, quickselect, inversion counting, and duplicate-aware search-range queries.
-- Added connected components, Dijkstra path reconstruction, topological sorting,
-  and Kruskal/Prim minimum spanning trees.
-- Added 0/1 knapsack, LCS length, edit distance, N-Queens, combination sum,
-  and greedy interval merging.
-- Fixed generator consumption in greedy and coin-change routines, duplicate
-  handling in rotated search, compact ISO date inference on Python 3.10, and
-  invalid CSV delimiter validation.
-
-- Added opt-in exact duplicate-row counts and configurable additional missing-value markers.
+- Added finite-weight validation for Dijkstra and minimum-spanning-tree inputs.
+- Added Bellman-Ford, Floyd-Warshall, and iterative strongly connected components.
+- Added stratified train/test and K-fold splitting utilities.
+- Added multiclass confusion matrices and tie-aware ROC AUC scoring.
+- Added a dependency-free K-nearest-neighbors classifier.
+- Added RobustScaler and polynomial feature expansion.
+- Added interpolated quantile statistics and overflow-safe even-sized medians.
+- Added collision-verified Rabin-Karp matching and LCS sequence reconstruction.
+- Added generator support to counting sort and strict quickselect index validation.
+- Added finite-real validation and overflow checks to matrix multiplication.
+- Tightened CSV profiler validation for option types, delimiters, encodings, and missing markers.
+- Expanded regression tests for edge cases, invalid inputs, and iterable behavior.
 
 ## 0.1.0 — 2026-11-04
 
