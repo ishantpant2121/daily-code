@@ -141,3 +141,82 @@ class StandardScaler:
     def _check_width(self, matrix: list[list[float]]) -> None:
         if len(matrix[0]) != self.n_features_in_:
             raise ValueError("input feature count does not match fitted data")
+
+
+def _linear_quantile(sorted_values: list[float], fraction: float) -> float:
+    position = (len(sorted_values) - 1) * fraction
+    lower = int(position)
+    upper = min(lower + 1, len(sorted_values) - 1)
+    weight = position - lower
+    return math.fsum((
+        sorted_values[lower] * (1.0 - weight),
+        sorted_values[upper] * weight,
+    ))
+
+
+class RobustScaler:
+    """Scale features by median and inter-quantile range.
+
+    The default center is the median and the default scale is the IQR
+    (75th percentile minus 25th percentile). Constant features use scale 1.
+    Quantiles use linear interpolation over sorted training observations.
+    """
+
+    def __init__(self, quantile_range: tuple[float, float] = (25.0, 75.0)) -> None:
+        if (
+            not isinstance(quantile_range, tuple)
+            or len(quantile_range) != 2
+            or any(isinstance(value, bool) or not isinstance(value, Real) for value in quantile_range)
+        ):
+            raise ValueError("quantile_range must be a pair of real numbers")
+        lower, upper = map(float, quantile_range)
+        if not math.isfinite(lower) or not math.isfinite(upper) or not 0 <= lower < upper <= 100:
+            raise ValueError("quantile_range must satisfy 0 <= lower < upper <= 100")
+        self.quantile_range = (lower, upper)
+        self._fitted = False
+
+    def fit(self, values: Iterable[Iterable[Real]]) -> "RobustScaler":
+        matrix = _validated_matrix(values)
+        self.n_features_in_ = len(matrix[0])
+        lower, upper = (value / 100.0 for value in self.quantile_range)
+        columns = [sorted(row[index] for row in matrix) for index in range(self.n_features_in_)]
+        self.center_ = [_linear_quantile(column, 0.5) for column in columns]
+        self.scale_ = []
+        for column in columns:
+            spread = _linear_quantile(column, upper) - _linear_quantile(column, lower)
+            if not math.isfinite(spread):
+                raise ValueError("feature spread is too large to represent")
+            self.scale_.append(spread if spread else 1.0)
+        self._fitted = True
+        return self
+
+    def transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
+        self._check_fitted()
+        matrix = _validated_matrix(values)
+        self._check_width(matrix)
+        return [
+            [(value - self.center_[index]) / self.scale_[index] for index, value in enumerate(row)]
+            for row in matrix
+        ]
+
+    def inverse_transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
+        self._check_fitted()
+        matrix = _validated_matrix(values)
+        self._check_width(matrix)
+        return [
+            [value * self.scale_[index] + self.center_[index] for index, value in enumerate(row)]
+            for row in matrix
+        ]
+
+    def fit_transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
+        matrix = _validated_matrix(values)
+        self.fit(matrix)
+        return self.transform(matrix)
+
+    def _check_fitted(self) -> None:
+        if not self._fitted:
+            raise RuntimeError("scaler must be fitted before transforming data")
+
+    def _check_width(self, matrix: list[list[float]]) -> None:
+        if len(matrix[0]) != self.n_features_in_:
+            raise ValueError("input feature count does not match fitted data")
