@@ -83,3 +83,61 @@ def k_fold_indices(
         folds.append((training, validation))
         offset += fold_size
     return folds
+
+
+def stratified_k_fold_indices(
+    labels: Sequence[T],
+    n_splits: int = 5,
+    *,
+    shuffle: bool = False,
+    random_state: int | None = None,
+) -> list[tuple[list[int], list[int]]]:
+    """Return K-fold splits that preserve each class's proportions.
+
+    Every class must contain at least n_splits samples so each validation fold
+    can contain that class. Fold sizes differ by at most one sample, and the
+    count of each class differs by at most one across folds. Labels must be
+    hashable. Training and validation values are indices into labels.
+    """
+    materialized = list(labels)
+    sample_count = len(materialized)
+    if sample_count < 2:
+        raise ValueError("at least two labels are required")
+    if type(n_splits) is not int or not 2 <= n_splits <= sample_count:
+        raise ValueError("n_splits must be between 2 and the number of labels")
+    if type(shuffle) is not bool:
+        raise ValueError("shuffle must be a boolean")
+    if random_state is not None and type(random_state) is not int:
+        raise ValueError("random_state must be an integer or None")
+
+    groups: dict[T, list[int]] = {}
+    try:
+        for index, label in enumerate(materialized):
+            groups.setdefault(label, []).append(index)
+    except TypeError:
+        raise ValueError("labels must be hashable") from None
+    if any(len(indices) < n_splits for indices in groups.values()):
+        raise ValueError("each class must contain at least n_splits samples")
+
+    generator = random.Random(random_state)
+    validation_folds: list[list[int]] = [[] for _ in range(n_splits)]
+    fold_cursor = 0
+    for class_indices in groups.values():
+        current = class_indices.copy()
+        if shuffle:
+            generator.shuffle(current)
+        for index in current:
+            validation_folds[fold_cursor].append(index)
+            fold_cursor = (fold_cursor + 1) % n_splits
+
+    if shuffle:
+        for fold in validation_folds:
+            generator.shuffle(fold)
+
+    all_indices = list(range(sample_count))
+    result = []
+    for validation in validation_folds:
+        validation_set = set(validation)
+        training = [index for index in all_indices if index not in validation_set]
+        result.append((training, validation))
+    return result
