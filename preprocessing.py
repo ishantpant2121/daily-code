@@ -1,6 +1,7 @@
-"""Small dependency-free feature scalers with fit/transform semantics."""
+"""Small dependency-free feature scalers and polynomial expansion."""
 
 import math
+from itertools import combinations_with_replacement
 from numbers import Real
 from typing import Iterable
 
@@ -27,11 +28,7 @@ def _validated_matrix(values: Iterable[Iterable[Real]]) -> list[list[float]]:
 
 
 class MinMaxScaler:
-    """Scale each feature to a target range using training-set extrema.
-
-    Constant training features map to the lower range bound and inverse
-    transform back to their original constant value.
-    """
+    """Scale each feature to a target range using training-set extrema."""
 
     def __init__(self, feature_range: tuple[float, float] = (0.0, 1.0)) -> None:
         if (
@@ -155,12 +152,7 @@ def _linear_quantile(sorted_values: list[float], fraction: float) -> float:
 
 
 class RobustScaler:
-    """Scale features by median and inter-quantile range.
-
-    The default center is the median and the default scale is the IQR
-    (75th percentile minus 25th percentile). Constant features use scale 1.
-    Quantiles use linear interpolation over sorted training observations.
-    """
+    """Scale features by median and inter-quantile range."""
 
     def __init__(self, quantile_range: tuple[float, float] = (25.0, 75.0)) -> None:
         if (
@@ -194,19 +186,13 @@ class RobustScaler:
         self._check_fitted()
         matrix = _validated_matrix(values)
         self._check_width(matrix)
-        return [
-            [(value - self.center_[index]) / self.scale_[index] for index, value in enumerate(row)]
-            for row in matrix
-        ]
+        return [[(value - self.center_[index]) / self.scale_[index] for index, value in enumerate(row)] for row in matrix]
 
     def inverse_transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
         self._check_fitted()
         matrix = _validated_matrix(values)
         self._check_width(matrix)
-        return [
-            [value * self.scale_[index] + self.center_[index] for index, value in enumerate(row)]
-            for row in matrix
-        ]
+        return [[value * self.scale_[index] + self.center_[index] for index, value in enumerate(row)] for row in matrix]
 
     def fit_transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
         matrix = _validated_matrix(values)
@@ -220,3 +206,58 @@ class RobustScaler:
     def _check_width(self, matrix: list[list[float]]) -> None:
         if len(matrix[0]) != self.n_features_in_:
             raise ValueError("input feature count does not match fitted data")
+
+
+class PolynomialFeatures:
+    """Expand rows into polynomial powers and interaction terms.
+
+    Terms are ordered by increasing total degree, then combinations with
+    replacement of feature indices. A leading constant-one term is included
+    when include_bias is true.
+    """
+
+    def __init__(self, degree: int = 2, *, include_bias: bool = True) -> None:
+        if type(degree) is not int or degree < 1:
+            raise ValueError("degree must be a positive integer")
+        if type(include_bias) is not bool:
+            raise ValueError("include_bias must be a boolean")
+        self.degree = degree
+        self.include_bias = include_bias
+        self._fitted = False
+
+    def fit(self, values: Iterable[Iterable[Real]]) -> "PolynomialFeatures":
+        matrix = _validated_matrix(values)
+        self.n_features_in_ = len(matrix[0])
+        powers = [()] if self.include_bias else []
+        for degree in range(1, self.degree + 1):
+            powers.extend(combinations_with_replacement(range(self.n_features_in_), degree))
+        self.powers_ = tuple(powers)
+        self._fitted = True
+        return self
+
+    def transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
+        self._check_fitted()
+        matrix = _validated_matrix(values)
+        if len(matrix[0]) != self.n_features_in_:
+            raise ValueError("input feature count does not match fitted data")
+        transformed = []
+        for row in matrix:
+            expanded = []
+            for powers in self.powers_:
+                product = 1.0
+                for index in powers:
+                    product *= row[index]
+                if not math.isfinite(product):
+                    raise ValueError("polynomial feature exceeds finite float range")
+                expanded.append(product)
+            transformed.append(expanded)
+        return transformed
+
+    def fit_transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
+        matrix = _validated_matrix(values)
+        self.fit(matrix)
+        return self.transform(matrix)
+
+    def _check_fitted(self) -> None:
+        if not self._fitted:
+            raise RuntimeError("transform requires a fitted PolynomialFeatures instance")
