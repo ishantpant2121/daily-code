@@ -8,8 +8,8 @@ from graphs import dijkstra, dijkstra_path, kruskal_mst, prim_mst
 class GraphWeightValidationTests(unittest.TestCase):
     def test_dijkstra_rejects_negative_non_finite_and_non_numeric_weights(self):
         invalid = (-1, True, float("nan"), float("inf"), "2", 10 ** 10000)
-        for weight in invalid:
-            with self.subTest(weight=repr(weight)[:30]):
+        for index, weight in enumerate(invalid):
+            with self.subTest(index=index, value_type=type(weight).__name__):
                 graph = {"a": [("b", weight)], "b": []}
                 with self.assertRaises(ValueError):
                     dijkstra(graph, "a")
@@ -23,8 +23,8 @@ class GraphWeightValidationTests(unittest.TestCase):
 
     def test_mst_algorithms_reject_non_finite_and_non_numeric_weights(self):
         invalid = (True, float("nan"), float("-inf"), "1")
-        for weight in invalid:
-            with self.subTest(weight=repr(weight)):
+        for index, weight in enumerate(invalid):
+            with self.subTest(index=index, value_type=type(weight).__name__):
                 with self.assertRaises(ValueError):
                     kruskal_mst([1, 2], [(1, 2, weight)])
                 with self.assertRaises(ValueError):
