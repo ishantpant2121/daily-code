@@ -3,7 +3,7 @@
 import math
 from itertools import combinations_with_replacement
 from numbers import Real
-from typing import Iterable
+from typing import Any, Iterable
 
 
 def _validated_matrix(values: Iterable[Iterable[Real]]) -> list[list[float]]:
@@ -323,6 +323,86 @@ class VarianceThreshold:
         if indices:
             return [index for index, selected in enumerate(self.support_) if selected]
         return list(self.support_)
+
+    def _check_fitted(self) -> None:
+        if not self._fitted:
+            raise RuntimeError("fit must be called before transforming data")
+
+
+
+def _categorical_matrix(values: Iterable[Iterable[Any]]) -> list[list[Any]]:
+    rows = [list(row) for row in values]
+    if not rows or not rows[0]:
+        raise ValueError("input must contain at least one row and one feature")
+    width = len(rows[0])
+    if any(len(row) != width for row in rows):
+        raise ValueError("all rows must contain the same number of features")
+    try:
+        for row in rows:
+            for value in row:
+                hash(value)
+    except TypeError:
+        raise ValueError("categorical values must be hashable") from None
+    return rows
+
+
+class OneHotEncoder:
+    """Encode categorical columns as indicator features.
+
+    Category order follows first appearance in the fitted data. Unknown
+    categories either raise ValueError or produce an all-zero feature block
+    when handle_unknown="ignore".
+    """
+
+    def __init__(self, *, handle_unknown: str = "error") -> None:
+        if handle_unknown not in ("error", "ignore"):
+            raise ValueError("handle_unknown must be 'error' or 'ignore'")
+        self.handle_unknown = handle_unknown
+        self._fitted = False
+
+    def fit(self, values: Iterable[Iterable[Any]]) -> "OneHotEncoder":
+        matrix = _categorical_matrix(values)
+        self.n_features_in_ = len(matrix[0])
+        categories = []
+        indices = []
+        for column in range(self.n_features_in_):
+            mapping = {}
+            for row in matrix:
+                value = row[column]
+                if value not in mapping:
+                    mapping[value] = len(mapping)
+            categories.append(tuple(mapping))
+            indices.append(mapping)
+        self.categories_ = tuple(categories)
+        self._category_indices_ = tuple(indices)
+        self._fitted = True
+        return self
+
+    def transform(self, values: Iterable[Iterable[Any]]) -> list[list[int]]:
+        self._check_fitted()
+        matrix = _categorical_matrix(values)
+        if len(matrix[0]) != self.n_features_in_:
+            raise ValueError("input feature count does not match fitted data")
+        transformed = []
+        for row in matrix:
+            encoded = []
+            for column, value in enumerate(row):
+                mapping = self._category_indices_[column]
+                if value not in mapping:
+                    if self.handle_unknown == "error":
+                        raise ValueError(f"unknown category {value!r} in feature {column}")
+                    encoded.extend([0] * len(self.categories_[column]))
+                    continue
+                block = [0] * len(self.categories_[column])
+                block[mapping[value]] = 1
+                encoded.extend(block)
+            transformed.append(encoded)
+        return transformed
+
+    def fit_transform(self, values: Iterable[Iterable[Any]]) -> list[list[int]]:
+        matrix = _categorical_matrix(values)
+        self.fit(matrix)
+        return self.transform(matrix)
 
     def _check_fitted(self) -> None:
         if not self._fitted:
