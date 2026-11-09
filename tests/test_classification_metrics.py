@@ -2,7 +2,11 @@
 
 import unittest
 
-from classification_metrics import balanced_accuracy_score, classification_metrics
+from classification_metrics import (
+    balanced_accuracy_score,
+    classification_metrics,
+    matthews_corrcoef,
+)
 
 
 class ClassificationMetricsTests(unittest.TestCase):
@@ -80,6 +84,22 @@ class ClassificationMetricsTests(unittest.TestCase):
             balanced_accuracy_score([1, 2], [1])
         with self.assertRaisesRegex(ValueError, "hashable"):
             balanced_accuracy_score([[1], [2]], [1, 2])
+
+    def test_multiclass_matthews_correlation(self):
+        self.assertEqual(matthews_corrcoef([0, 1, 2], [0, 1, 2]), 1.0)
+        self.assertEqual(matthews_corrcoef([0, 1], [1, 0]), -1.0)
+        self.assertEqual(matthews_corrcoef([1, 1, 0, 0], [1, 0, 1, 0]), 0.0)
+        self.assertAlmostEqual(
+            matthews_corrcoef([0, 1, 2, 2], [0, 2, 1, 2]),
+            0.2,
+        )
+        self.assertEqual(matthews_corrcoef([1, 1], [1, 1]), 0.0)
+
+    def test_matthews_correlation_rejects_empty_and_mismatched_inputs(self):
+        with self.assertRaises(ValueError):
+            matthews_corrcoef([], [])
+        with self.assertRaises(ValueError):
+            matthews_corrcoef([1, 2], [1])
 
     def test_rejects_empty_mismatched_and_invalid_policy_inputs(self):
         with self.assertRaises(ValueError):

@@ -234,3 +234,31 @@ def balanced_accuracy_score(y_true: Iterable[Any], y_pred: Iterable[Any]) -> flo
         raise ValueError("true class labels must be hashable") from None
     recalls = [correct[label] / count for label, count in support.items()]
     return math.fsum(recalls) / len(recalls)
+
+
+
+def matthews_corrcoef(y_true: Iterable[Any], y_pred: Iterable[Any]) -> float:
+    """Return the multiclass Matthews correlation coefficient.
+
+    The coefficient ranges from -1 (total disagreement) through 0 (no
+    correlation) to 1 (perfect agreement). A zero denominator returns 0.0.
+    """
+    actual = list(y_true)
+    predicted = list(y_pred)
+    matrix = confusion_matrix(actual, predicted)
+    size = len(matrix)
+    total = len(actual)
+    true_counts = [sum(row) for row in matrix]
+    predicted_counts = [
+        sum(matrix[row][column] for row in range(size))
+        for column in range(size)
+    ]
+    correct = sum(matrix[index][index] for index in range(size))
+    numerator = correct * total - sum(
+        truth * estimate
+        for truth, estimate in zip(true_counts, predicted_counts)
+    )
+    true_term = total * total - sum(value * value for value in true_counts)
+    predicted_term = total * total - sum(value * value for value in predicted_counts)
+    denominator = math.sqrt(true_term * predicted_term)
+    return 0.0 if denominator == 0 else numerator / denominator
