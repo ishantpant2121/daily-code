@@ -7,6 +7,7 @@ from regression_metrics import (
     mean_absolute_error,
     median_absolute_error,
     max_error,
+    explained_variance_score,
     mean_squared_error,
     r2_score,
     root_mean_squared_error,
@@ -41,6 +42,18 @@ class RegressionMetricsTests(unittest.TestCase):
         self.assertEqual(
             mean_absolute_error((x for x in [1, 2]), (x for x in [2, 4])),
             1.5,
+        )
+
+    def test_explained_variance_measures_residual_spread(self):
+        self.assertAlmostEqual(explained_variance_score([1, 2, 3], [4, 5, 6]), 1.0)
+        self.assertAlmostEqual(explained_variance_score([1, 2, 3], [1, 2, 4]), 2 / 3)
+        self.assertEqual(explained_variance_score([4, 4], [7, 7]), 1.0)
+        self.assertEqual(explained_variance_score([4, 4], [3, 5]), 0.0)
+        self.assertTrue(
+            math.isnan(explained_variance_score([4, 4], [7, 7], force_finite=False))
+        )
+        self.assertEqual(
+            explained_variance_score([4, 4], [3, 5], force_finite=False), -math.inf
         )
 
     def test_r2_can_be_negative(self):

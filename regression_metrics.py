@@ -102,3 +102,37 @@ def max_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
     """Return the largest absolute difference between targets and predictions."""
     actual, predicted = _paired_values(y_true, y_pred)
     return max(_absolute_errors(actual, predicted))
+
+
+def explained_variance_score(
+    y_true: Iterable[Real],
+    y_pred: Iterable[Real],
+    *,
+    force_finite: bool = True,
+) -> float:
+    """Return 1 - Var(y_true - y_pred) / Var(y_true), using population variance.
+
+    Unlike R-squared, a constant prediction offset does not reduce this score:
+    explained variance measures residual spread rather than residual bias.
+    For constant targets, force_finite returns 1.0 when residual variance is
+    zero and 0.0 otherwise; disabling it returns NaN or negative infinity.
+    """
+    if type(force_finite) is not bool:
+        raise ValueError("force_finite must be a boolean")
+    actual, predicted = _paired_values(y_true, y_pred)
+    residuals = [target - estimate for target, estimate in zip(actual, predicted)]
+    if any(not math.isfinite(value) for value in residuals):
+        raise ValueError("prediction error exceeds finite float range")
+    actual_mean = math.fsum(actual) / len(actual)
+    residual_mean = math.fsum(residuals) / len(residuals)
+    actual_variance = math.fsum(
+        (value - actual_mean) ** 2 for value in actual
+    ) / len(actual)
+    residual_variance = math.fsum(
+        (value - residual_mean) ** 2 for value in residuals
+    ) / len(residuals)
+    if actual_variance == 0:
+        if force_finite:
+            return 1.0 if residual_variance == 0 else 0.0
+        return math.nan if residual_variance == 0 else -math.inf
+    return 1.0 - residual_variance / actual_variance
