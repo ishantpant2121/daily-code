@@ -347,3 +347,39 @@ def average_precision_score(
         (recall[index] - recall[index + 1]) * precision[index]
         for index in range(len(recall) - 1)
     )
+
+
+
+def _binary_probability_pairs(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Real],
+    positive_label: Any,
+) -> list[tuple[int, float]]:
+    missing = object()
+    pairs = []
+    for label, probability in zip_longest(y_true, y_probability, fillvalue=missing):
+        if label is missing or probability is missing:
+            raise ValueError("y_true and y_probability must have equal lengths")
+        if isinstance(probability, bool) or not isinstance(probability, Real):
+            raise ValueError("probabilities must be real numbers")
+        try:
+            numeric = float(probability)
+        except (OverflowError, TypeError, ValueError):
+            raise ValueError("probabilities must be finite values in [0, 1]") from None
+        if not math.isfinite(numeric) or not 0 <= numeric <= 1:
+            raise ValueError("probabilities must be finite values in [0, 1]")
+        pairs.append((int(label == positive_label), numeric))
+    if not pairs:
+        raise ValueError("y_true and y_probability must not be empty")
+    return pairs
+
+
+def brier_score_loss(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Real],
+    *,
+    positive_label: Any = 1,
+) -> float:
+    """Return the mean squared error of binary positive-class probabilities."""
+    pairs = _binary_probability_pairs(y_true, y_probability, positive_label)
+    return math.fsum((target - probability) ** 2 for target, probability in pairs) / len(pairs)
