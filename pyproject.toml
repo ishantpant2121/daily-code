@@ -27,6 +27,7 @@ py-modules = [
     "greedy",
     "heaps",
     "knn_classifier",
+    "knn_regressor",
     "linear_regression",
     "logistic_regression",
     "matrix_algorithms",
