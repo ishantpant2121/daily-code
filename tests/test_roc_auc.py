@@ -91,26 +91,3 @@ class RocAucTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-    def test_precision_recall_curve_groups_tied_scores(self):
-        from classification_metrics import precision_recall_curve
-
-        precision, recall, thresholds = precision_recall_curve(
-            [0, 1, 1, 0], [0.1, 0.4, 0.4, 0.8]
-        )
-        self.assertEqual(thresholds, [0.1, 0.4, 0.8])
-        self.assertEqual(recall, [1.0, 1.0, 0.0, 0.0])
-        self.assertEqual(precision, [0.5, 2 / 3, 0.0, 1.0])
-
-    def test_precision_recall_curve_validates_inputs(self):
-        from classification_metrics import precision_recall_curve
-
-        with self.assertRaises(ValueError):
-            precision_recall_curve([], [])
-        with self.assertRaises(ValueError):
-            precision_recall_curve([0, 1], [0.1])
-        with self.assertRaises(ValueError):
-            precision_recall_curve([1, 1], [0.2, 0.8])
-        with self.assertRaises(ValueError):
-            precision_recall_curve([0, 1], [0.2, float("nan")])
