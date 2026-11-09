@@ -407,3 +407,59 @@ class OneHotEncoder:
     def _check_fitted(self) -> None:
         if not self._fitted:
             raise RuntimeError("fit must be called before transforming data")
+
+
+
+class LabelEncoder:
+    """Map hashable class labels to stable integer indices and back.
+
+    Class order follows first appearance in the fitted target sequence.
+    Unknown labels and invalid inverse indices raise ValueError.
+    """
+
+    def __init__(self) -> None:
+        self._fitted = False
+
+    def fit(self, labels: Iterable[Any]) -> "LabelEncoder":
+        values = list(labels)
+        if not values:
+            raise ValueError("labels must not be empty")
+        mapping = {}
+        try:
+            for value in values:
+                if value not in mapping:
+                    mapping[value] = len(mapping)
+        except TypeError:
+            raise ValueError("class labels must be hashable") from None
+        self.classes_ = tuple(mapping)
+        self._class_indices = mapping
+        self._fitted = True
+        return self
+
+    def transform(self, labels: Iterable[Any]) -> list[int]:
+        self._check_fitted()
+        result = []
+        for value in labels:
+            try:
+                result.append(self._class_indices[value])
+            except (KeyError, TypeError):
+                raise ValueError(f"unknown or unhashable class label: {value!r}") from None
+        return result
+
+    def inverse_transform(self, indices: Iterable[int]) -> list[Any]:
+        self._check_fitted()
+        result = []
+        for index in indices:
+            if type(index) is not int or not 0 <= index < len(self.classes_):
+                raise ValueError("encoded labels must be valid integer class indices")
+            result.append(self.classes_[index])
+        return result
+
+    def fit_transform(self, labels: Iterable[Any]) -> list[int]:
+        values = list(labels)
+        self.fit(values)
+        return self.transform(values)
+
+    def _check_fitted(self) -> None:
+        if not self._fitted:
+            raise RuntimeError("fit must be called before transforming labels")
