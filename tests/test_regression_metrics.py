@@ -43,6 +43,7 @@ class RegressionMetricsTests(unittest.TestCase):
             ([1], ["1"]),
             ([float("nan")], [1]),
             ([1], [float("inf")]),
+            ([10**400], [1]),
         ]
         for actual, predicted in invalid_cases:
             with self.subTest(actual=actual, predicted=predicted):

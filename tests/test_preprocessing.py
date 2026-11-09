@@ -33,7 +33,7 @@ class MinMaxScalerTests(unittest.TestCase):
             with self.subTest(feature_range=feature_range):
                 with self.assertRaises(ValueError):
                     MinMaxScaler(feature_range)
-        for matrix in ([], [[1], [1, 2]], [[float("nan")]]):
+        for matrix in ([], [[1], [1, 2]], [[float("nan")]], [[10**400]]):
             with self.subTest(matrix=matrix):
                 with self.assertRaises(ValueError):
                     MinMaxScaler().fit(matrix)

@@ -19,9 +19,12 @@ def _validated_matrix(values: Iterable[Iterable[Real]]) -> list[list[float]]:
         for value in row:
             if isinstance(value, bool) or not isinstance(value, Real):
                 raise ValueError("features must be real numbers")
-            number = float(value)
+            try:
+                number = float(value)
+            except (OverflowError, TypeError, ValueError):
+                raise ValueError("features must be finite real numbers") from None
             if not math.isfinite(number):
-                raise ValueError("features must be finite")
+                raise ValueError("features must be finite real numbers")
             converted.append(number)
         result.append(converted)
     return result

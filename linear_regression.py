@@ -12,7 +12,10 @@ def _numeric_values(values: Iterable[Real], name: str) -> list[float]:
     for value in values:
         if isinstance(value, bool) or not isinstance(value, Real):
             raise ValueError(f"{name} must contain only real numbers")
-        number = float(value)
+        try:
+            number = float(value)
+        except (OverflowError, TypeError, ValueError):
+            raise ValueError(f"{name} must contain only finite numbers") from None
         if not math.isfinite(number):
             raise ValueError(f"{name} must contain only finite numbers")
         result.append(number)

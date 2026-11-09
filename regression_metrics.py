@@ -20,8 +20,11 @@ def _paired_values(y_true: Iterable[Real], y_pred: Iterable[Real]) -> tuple[list
             or not isinstance(predicted, Real)
         ):
             raise ValueError("targets and predictions must be real numbers")
-        actual_float = float(actual)
-        predicted_float = float(predicted)
+        try:
+            actual_float = float(actual)
+            predicted_float = float(predicted)
+        except (OverflowError, TypeError, ValueError):
+            raise ValueError("targets and predictions must be finite") from None
         if not math.isfinite(actual_float) or not math.isfinite(predicted_float):
             raise ValueError("targets and predictions must be finite")
         actual_values.append(actual_float)

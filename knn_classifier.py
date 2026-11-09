@@ -20,7 +20,7 @@ def _feature_matrix(values: Iterable[Iterable[Real]]) -> list[list[float]]:
                 raise ValueError("features must be finite real numbers")
             try:
                 number = float(value)
-            except (OverflowError, ValueError):
+            except (OverflowError, TypeError, ValueError):
                 raise ValueError("features must be finite real numbers") from None
             if not math.isfinite(number):
                 raise ValueError("features must be finite real numbers")

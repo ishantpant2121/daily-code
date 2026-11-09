@@ -46,6 +46,8 @@ class KNNClassifierTests(unittest.TestCase):
             KNNClassifier().fit([[0], [1]], ["a"])
         with self.assertRaises(ValueError):
             KNNClassifier().fit([[True]], ["a"])
+        with self.assertRaises(ValueError):
+            KNNClassifier().fit([[10**400]], ["a"])
 
 
 if __name__ == "__main__":

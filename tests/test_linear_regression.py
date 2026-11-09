@@ -30,6 +30,7 @@ class SimpleLinearRegressionTests(unittest.TestCase):
             lambda: SimpleLinearRegression().fit([1, 2], [1]),
             lambda: SimpleLinearRegression().fit([1, float("inf")], [2, 3]),
             lambda: SimpleLinearRegression().fit([True, 2], [2, 3]),
+            lambda: SimpleLinearRegression().fit([10**400, 2], [2, 3]),
         ]
         for call in cases:
             with self.subTest(call=call):
