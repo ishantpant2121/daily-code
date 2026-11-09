@@ -383,3 +383,30 @@ def brier_score_loss(
     """Return the mean squared error of binary positive-class probabilities."""
     pairs = _binary_probability_pairs(y_true, y_probability, positive_label)
     return math.fsum((target - probability) ** 2 for target, probability in pairs) / len(pairs)
+
+
+
+def log_loss(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Real],
+    *,
+    positive_label: Any = 1,
+    eps: float = 1e-15,
+) -> float:
+    """Return binary cross-entropy after clipping probabilities to [eps, 1-eps]."""
+    if isinstance(eps, bool) or not isinstance(eps, Real):
+        raise ValueError("eps must be a real number between 0 and 0.5")
+    try:
+        epsilon = float(eps)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError("eps must be a finite number between 0 and 0.5") from None
+    if not math.isfinite(epsilon) or not 0 < epsilon < 0.5:
+        raise ValueError("eps must be a finite number between 0 and 0.5")
+    pairs = _binary_probability_pairs(y_true, y_probability, positive_label)
+    losses = []
+    for target, probability in pairs:
+        clipped = min(1.0 - epsilon, max(epsilon, probability))
+        losses.append(
+            -math.log(clipped) if target else -math.log1p(-clipped)
+        )
+    return math.fsum(losses) / len(losses)

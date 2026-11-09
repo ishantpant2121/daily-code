@@ -2,7 +2,7 @@
 
 import unittest
 
-from classification_metrics import brier_score_loss
+from classification_metrics import brier_score_loss, log_loss
 
 
 class ProbabilityMetricTests(unittest.TestCase):
@@ -21,6 +21,23 @@ class ProbabilityMetricTests(unittest.TestCase):
             ),
             0.01,
         )
+
+    def test_log_loss_clips_extreme_probabilities(self):
+        import math
+
+        result = log_loss([1, 0], [1.0, 0.0])
+        self.assertAlmostEqual(result, -math.log(1e-15))
+        self.assertAlmostEqual(
+            log_loss(["yes", "no"], [0.9, 0.1], positive_label="yes"),
+            -math.log(0.9),
+        )
+
+    def test_log_loss_validates_epsilon_and_probability_inputs(self):
+        for eps in (0, 0.5, float("nan"), True):
+            with self.subTest(eps=eps), self.assertRaises(ValueError):
+                log_loss([0, 1], [0.2, 0.8], eps=eps)
+        with self.assertRaises(ValueError):
+            log_loss([0, 1], [0.2, 1.2])
 
     def test_brier_score_rejects_invalid_inputs(self):
         cases = (
