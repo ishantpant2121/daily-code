@@ -87,18 +87,25 @@ negative cycles respectively. MST helpers support finite negative weights.
 
 ## Data science and machine learning utilities
 
-- **classification_metrics.py** — accuracy, precision, recall, F1, confusion
-  counts, multiclass confusion matrices, and tie-aware ROC AUC for binary or
-  one-vs-rest evaluation.
-- **regression_metrics.py** — mean absolute error, mean squared error, root
-  mean squared error, and R-squared with an explicit constant-target policy.
+- **classification_metrics.py** — accuracy, precision, recall, F1, balanced
+  accuracy, Matthews correlation, confusion matrices, ROC/precision-recall
+  curves, average precision, Brier score, and binary log loss.
+- **regression_metrics.py** — absolute, squared, logarithmic, median, and maximum
+  errors, explained variance, and R-squared with an explicit constant-target policy.
 - **data_splitting.py** — reproducible train/test splits, stratified holdout
   splits, balanced K-fold indices, and stratified K-fold indices.
-- **preprocessing.py** — fit/transform/inverse-transform implementations of
-  MinMaxScaler, StandardScaler, RobustScaler, and polynomial feature expansion.
-- **knn_classifier.py** — a dependency-free K-nearest-neighbors classifier with
-  Euclidean or Manhattan distance, uniform or inverse-distance voting, and
-  normalized class probabilities.
+- **preprocessing.py** — MinMaxScaler, StandardScaler, RobustScaler, polynomial
+  expansion, variance-based feature selection, one-hot encoding, and label encoding.
+- **knn_classifier.py** and **knn_regressor.py** — dependency-free nearest-neighbor
+  classification and regression with Euclidean/Manhattan distance and optional
+  inverse-distance weighting.
+- **logistic_regression.py** — binary logistic regression with batch gradient
+  descent, stable sigmoid probabilities, and optional L2 regularization.
+- **gaussian_nb.py** — Gaussian Naive Bayes with variance smoothing and normalized
+  log-probability calculations.
+- **kmeans.py** — k-means clustering with k-means++ initialization, multiple
+  starts, deterministic seeds, and empty-cluster handling.
+- **pca.py** — principal component analysis using a symmetric Jacobi eigensolver.
 - **linear_regression.py** — simple univariate ordinary least-squares regression.
 - **statistics_utils.py** — mean, median, interpolated quantiles, sample/population
   variance, standard deviation, covariance, and Pearson correlation.
@@ -120,6 +127,20 @@ scaler = StandardScaler().fit(x_train)
 model = KNNClassifier(n_neighbors=1).fit(scaler.transform(x_train), y_train)
 predictions = model.predict(scaler.transform(x_test))
 print(predictions)
+~~~
+
+Additional unsupervised and dimensionality-reduction example:
+
+~~~python
+from kmeans import KMeans
+from pca import PCA
+from preprocessing import StandardScaler
+
+features = [[1.0, 2.0], [1.2, 1.8], [8.0, 9.0], [8.2, 8.8]]
+scaled = StandardScaler().fit_transform(features)
+projection = PCA(n_components=1).fit_transform(scaled)
+clusters = KMeans(n_clusters=2, random_state=42).fit_predict(projection)
+print(clusters)
 ~~~
 
 Fit preprocessing steps on training data only, then apply the fitted transform

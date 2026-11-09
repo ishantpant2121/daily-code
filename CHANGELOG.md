@@ -13,6 +13,13 @@
 - Added generator support to counting sort and strict quickselect index validation.
 - Added finite-real validation and overflow checks to matrix multiplication.
 - Tightened CSV profiler validation for option types, delimiters, encodings, and missing markers.
+- Added balanced accuracy, multiclass Matthews correlation, ROC and precision-recall curves, average precision, Brier score, and binary log loss.
+- Added median absolute error, maximum error, explained variance, and squared logarithmic regression errors.
+- Added variance-threshold selection, one-hot encoding, and reversible label encoding.
+- Added binary logistic regression, Gaussian Naive Bayes, and K-nearest-neighbors regression.
+- Added dependency-free PCA with a Jacobi symmetric eigensolver and k-means clustering with k-means++ initialization.
+- Normalized oversized numeric conversion errors across preprocessing, regression, and nearest-neighbor inputs.
+- Expanded installed-package smoke tests for the new machine-learning modules.
 - Expanded regression tests for edge cases, invalid inputs, and iterable behavior.
 
 ## 0.1.0 — 2026-11-04
