@@ -26,7 +26,7 @@ class ProbabilityMetricTests(unittest.TestCase):
         import math
 
         result = log_loss([1, 0], [1.0, 0.0])
-        self.assertAlmostEqual(result, -math.log(1e-15))
+        self.assertLess(result, 2e-15)
         self.assertAlmostEqual(
             log_loss(["yes", "no"], [0.9, 0.1], positive_label="yes"),
             -math.log(0.9),
