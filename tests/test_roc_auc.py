@@ -6,6 +6,7 @@ from classification_metrics import (
     average_precision_score,
     precision_recall_curve,
     roc_auc_score,
+    roc_curve,
 )
 
 
@@ -67,6 +68,25 @@ class RocAucTests(unittest.TestCase):
             average_precision_score(["n", "y"], [0.1, 0.9], positive_label="y"),
             1.0,
         )
+
+
+    def test_roc_curve_returns_monotonic_rates_and_descending_thresholds(self):
+        false_positive, true_positive, thresholds = roc_curve(
+            [0, 0, 1, 1], [0.1, 0.4, 0.35, 0.8]
+        )
+        self.assertEqual(thresholds, [float("inf"), 0.8, 0.4, 0.35, 0.1])
+        self.assertEqual(false_positive, [0.0, 0.0, 0.5, 0.5, 1.0])
+        self.assertEqual(true_positive, [0.0, 0.5, 0.5, 1.0, 1.0])
+
+    def test_roc_curve_groups_ties_and_validates_single_class(self):
+        false_positive, true_positive, thresholds = roc_curve(
+            [0, 1, 0, 1], [0.5, 0.5, 0.2, 0.9]
+        )
+        self.assertEqual(thresholds, [float("inf"), 0.9, 0.5, 0.2])
+        self.assertEqual(false_positive, [0.0, 0.0, 0.5, 1.0])
+        self.assertEqual(true_positive, [0.0, 0.5, 1.0, 1.0])
+        with self.assertRaises(ValueError):
+            roc_curve([1, 1], [0.2, 0.8])
 
 
 if __name__ == "__main__":

@@ -410,3 +410,60 @@ def log_loss(
             -math.log(clipped) if target else -math.log1p(-clipped)
         )
     return math.fsum(losses) / len(losses)
+
+
+
+def roc_curve(
+    y_true: Iterable[Any],
+    y_score: Iterable[Real],
+    *,
+    positive_label: Any = 1,
+) -> tuple[list[float], list[float], list[float]]:
+    """Return false-positive rates, true-positive rates, and descending thresholds.
+
+    The first point is (0, 0) at an infinite threshold. Equal scores are
+    processed together so their order cannot change the curve.
+    """
+    missing = object()
+    pairs: list[tuple[float, bool]] = []
+    positives = negatives = 0
+    for label, score in zip_longest(y_true, y_score, fillvalue=missing):
+        if label is missing or score is missing:
+            raise ValueError("y_true and y_score must have equal lengths")
+        if isinstance(score, bool) or not isinstance(score, Real):
+            raise ValueError("scores must be real numbers")
+        try:
+            numeric_score = float(score)
+        except (OverflowError, TypeError, ValueError):
+            raise ValueError("scores must be finite real numbers") from None
+        if not math.isfinite(numeric_score):
+            raise ValueError("scores must be finite real numbers")
+        is_positive = label == positive_label
+        positives += int(is_positive)
+        negatives += int(not is_positive)
+        pairs.append((numeric_score, is_positive))
+    if not pairs:
+        raise ValueError("y_true and y_score must not be empty")
+    if not positives or not negatives:
+        raise ValueError("ROC curve requires both classes")
+
+    pairs.sort(key=lambda item: item[0], reverse=True)
+    false_positive_rates = [0.0]
+    true_positive_rates = [0.0]
+    thresholds = [math.inf]
+    true_positive = false_positive = 0
+    index = 0
+    while index < len(pairs):
+        threshold = pairs[index][0]
+        end = index
+        while end < len(pairs) and pairs[end][0] == threshold:
+            if pairs[end][1]:
+                true_positive += 1
+            else:
+                false_positive += 1
+            end += 1
+        false_positive_rates.append(false_positive / negatives)
+        true_positive_rates.append(true_positive / positives)
+        thresholds.append(threshold)
+        index = end
+    return false_positive_rates, true_positive_rates, thresholds
