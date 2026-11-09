@@ -75,3 +75,30 @@ def r2_score(
             return 1.0 if residual_sum == 0 else 0.0
         return math.nan if residual_sum == 0 else -math.inf
     return 1.0 - residual_sum / total_sum
+
+
+def _absolute_errors(actual: list[float], predicted: list[float]) -> list[float]:
+    """Return finite absolute residuals for already validated paired data."""
+    errors = []
+    for target, estimate in zip(actual, predicted):
+        error = abs(target - estimate)
+        if not math.isfinite(error):
+            raise ValueError("prediction error exceeds finite float range")
+        errors.append(error)
+    return errors
+
+
+def median_absolute_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
+    """Return the median absolute difference between targets and predictions."""
+    actual, predicted = _paired_values(y_true, y_pred)
+    errors = sorted(_absolute_errors(actual, predicted))
+    middle = len(errors) // 2
+    if len(errors) % 2:
+        return errors[middle]
+    return errors[middle - 1] / 2.0 + errors[middle] / 2.0
+
+
+def max_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
+    """Return the largest absolute difference between targets and predictions."""
+    actual, predicted = _paired_values(y_true, y_pred)
+    return max(_absolute_errors(actual, predicted))

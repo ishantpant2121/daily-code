@@ -5,6 +5,8 @@ import unittest
 
 from regression_metrics import (
     mean_absolute_error,
+    median_absolute_error,
+    max_error,
     mean_squared_error,
     r2_score,
     root_mean_squared_error,
@@ -19,6 +21,21 @@ class RegressionMetricsTests(unittest.TestCase):
         self.assertAlmostEqual(mean_squared_error(actual, predicted), 0.375)
         self.assertAlmostEqual(root_mean_squared_error(actual, predicted), math.sqrt(0.375))
         self.assertAlmostEqual(r2_score(actual, predicted), 0.9486081370449679)
+
+    def test_median_absolute_and_maximum_error(self):
+        actual = [3, -0.5, 2, 7]
+        predicted = [2.5, 0, 2, 8]
+        self.assertEqual(median_absolute_error(actual, predicted), 0.5)
+        self.assertEqual(max_error(actual, predicted), 1.0)
+        self.assertEqual(median_absolute_error([1, 2, 3], [1, 4, 3]), 0.0)
+
+    def test_new_error_metrics_accept_generators_and_reject_overflow(self):
+        self.assertEqual(
+            median_absolute_error((x for x in [1, 2]), (x for x in [2, 4])),
+            1.5,
+        )
+        with self.assertRaises(ValueError):
+            max_error([1e308], [-1e308])
 
     def test_accepts_one_shot_iterables(self):
         self.assertEqual(
