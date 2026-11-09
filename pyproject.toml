@@ -22,6 +22,7 @@ py-modules = [
     "day2",
     "day3_linked_lists",
     "dynamic_programming",
+    "gaussian_nb",
     "graphs",
     "greedy",
     "heaps",
