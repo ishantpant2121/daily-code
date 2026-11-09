@@ -262,3 +262,67 @@ def matthews_corrcoef(y_true: Iterable[Any], y_pred: Iterable[Any]) -> float:
     predicted_term = total * total - sum(value * value for value in predicted_counts)
     denominator = math.sqrt(true_term * predicted_term)
     return 0.0 if denominator == 0 else numerator / denominator
+
+
+
+def precision_recall_curve(
+    y_true: Iterable[Any],
+    y_score: Iterable[Real],
+    *,
+    positive_label: Any = 1,
+) -> tuple[list[float], list[float], list[float]]:
+    """Return precision, recall, and ascending score thresholds for binary data.
+
+    Equal scores are processed together so their internal order cannot affect
+    the curve. Precision and recall contain one extra terminal point (1.0,
+    0.0), matching the conventional threshold-curve representation.
+    """
+    missing = object()
+    pairs: list[tuple[float, bool]] = []
+    positives = negatives = 0
+    for label, score in zip_longest(y_true, y_score, fillvalue=missing):
+        if label is missing or score is missing:
+            raise ValueError("y_true and y_score must have equal lengths")
+        if isinstance(score, bool) or not isinstance(score, Real):
+            raise ValueError("scores must be real numbers")
+        try:
+            numeric_score = float(score)
+        except (OverflowError, TypeError, ValueError):
+            raise ValueError("scores must be finite real numbers") from None
+        if not math.isfinite(numeric_score):
+            raise ValueError("scores must be finite real numbers")
+        is_positive = label == positive_label
+        positives += int(is_positive)
+        negatives += int(not is_positive)
+        pairs.append((numeric_score, is_positive))
+    if not pairs:
+        raise ValueError("y_true and y_score must not be empty")
+    if not positives or not negatives:
+        raise ValueError("precision-recall curve requires both classes")
+
+    pairs.sort(key=lambda item: item[0], reverse=True)
+    precision_desc: list[float] = []
+    recall_desc: list[float] = []
+    thresholds_desc: list[float] = []
+    true_positive = false_positive = 0
+    index = 0
+    while index < len(pairs):
+        threshold = pairs[index][0]
+        end = index
+        while end < len(pairs) and pairs[end][0] == threshold:
+            if pairs[end][1]:
+                true_positive += 1
+            else:
+                false_positive += 1
+            end += 1
+        precision_desc.append(true_positive / (true_positive + false_positive))
+        recall_desc.append(true_positive / positives)
+        thresholds_desc.append(threshold)
+        index = end
+
+    precision = list(reversed(precision_desc))
+    recall = list(reversed(recall_desc))
+    thresholds = list(reversed(thresholds_desc))
+    precision.append(1.0)
+    recall.append(0.0)
+    return precision, recall, thresholds
