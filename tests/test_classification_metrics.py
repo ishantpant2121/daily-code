@@ -2,7 +2,7 @@
 
 import unittest
 
-from classification_metrics import classification_metrics
+from classification_metrics import balanced_accuracy_score, classification_metrics
 
 
 class ClassificationMetricsTests(unittest.TestCase):
@@ -59,6 +59,27 @@ class ClassificationMetricsTests(unittest.TestCase):
 
         configured = classification_metrics([0, 0], [0, 0], zero_division=1)
         self.assertEqual((configured["precision"], configured["recall"], configured["f1"]), (1.0, 1.0, 1.0))
+
+    def test_balanced_accuracy_weights_each_true_class_equally(self):
+        actual = [0] * 9 + [1]
+        predicted = [0] * 10
+        self.assertAlmostEqual(balanced_accuracy_score(actual, predicted), 0.5)
+        self.assertEqual(balanced_accuracy_score([0, 1, 2], [0, 1, 2]), 1.0)
+        self.assertEqual(
+            balanced_accuracy_score(
+                (value for value in [0, 0, 1]),
+                (value for value in [0, 1, 1]),
+            ),
+            0.75,
+        )
+
+    def test_balanced_accuracy_rejects_invalid_lengths_and_labels(self):
+        with self.assertRaises(ValueError):
+            balanced_accuracy_score([], [])
+        with self.assertRaises(ValueError):
+            balanced_accuracy_score([1, 2], [1])
+        with self.assertRaisesRegex(ValueError, "hashable"):
+            balanced_accuracy_score([[1], [2]], [1, 2])
 
     def test_rejects_empty_mismatched_and_invalid_policy_inputs(self):
         with self.assertRaises(ValueError):

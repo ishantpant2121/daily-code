@@ -209,3 +209,28 @@ def roc_auc_score(
     return (
         positive_rank_sum - positives * (positives + 1) / 2.0
     ) / (positives * negatives)
+
+
+
+def balanced_accuracy_score(y_true: Iterable[Any], y_pred: Iterable[Any]) -> float:
+    """Return the unweighted mean recall across classes present in y_true.
+
+    This multiclass-capable score gives each observed true class equal weight,
+    so it is less dominated by majority classes than ordinary accuracy.
+    """
+    actual = list(y_true)
+    predicted = list(y_pred)
+    if not actual:
+        raise ValueError("y_true and y_pred must not be empty")
+    if len(actual) != len(predicted):
+        raise ValueError("y_true and y_pred must have equal lengths")
+    support: dict[Any, int] = {}
+    correct: dict[Any, int] = {}
+    try:
+        for truth, estimate in zip(actual, predicted):
+            support[truth] = support.get(truth, 0) + 1
+            correct[truth] = correct.get(truth, 0) + int(truth == estimate)
+    except TypeError:
+        raise ValueError("true class labels must be hashable") from None
+    recalls = [correct[label] / count for label, count in support.items()]
+    return math.fsum(recalls) / len(recalls)
