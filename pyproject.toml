@@ -28,6 +28,7 @@ py-modules = [
     "heaps",
     "knn_classifier",
     "knn_regressor",
+    "kmeans",
     "linear_regression",
     "logistic_regression",
     "matrix_algorithms",
