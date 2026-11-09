@@ -32,6 +32,7 @@ py-modules = [
     "logistic_regression",
     "matrix_algorithms",
     "pathfinding",
+    "pca",
     "preprocessing",
     "recursion",
     "regression_metrics",
