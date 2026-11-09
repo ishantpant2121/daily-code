@@ -136,3 +136,19 @@ def explained_variance_score(
             return 1.0 if residual_variance == 0 else 0.0
         return math.nan if residual_variance == 0 else -math.inf
     return 1.0 - residual_variance / actual_variance
+
+
+def mean_squared_log_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
+    """Return mean squared error after applying log1p to non-negative values."""
+    actual, predicted = _paired_values(y_true, y_pred)
+    if any(value < 0 for value in actual + predicted):
+        raise ValueError("mean squared log error requires non-negative values")
+    return math.fsum(
+        (math.log1p(target) - math.log1p(estimate)) ** 2
+        for target, estimate in zip(actual, predicted)
+    ) / len(actual)
+
+
+def root_mean_squared_log_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
+    """Return the square root of mean squared logarithmic error."""
+    return math.sqrt(mean_squared_log_error(y_true, y_pred))

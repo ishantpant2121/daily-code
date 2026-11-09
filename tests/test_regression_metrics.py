@@ -8,6 +8,8 @@ from regression_metrics import (
     median_absolute_error,
     max_error,
     explained_variance_score,
+    mean_squared_log_error,
+    root_mean_squared_log_error,
     mean_squared_error,
     r2_score,
     root_mean_squared_error,
@@ -55,6 +57,18 @@ class RegressionMetricsTests(unittest.TestCase):
         self.assertEqual(
             explained_variance_score([4, 4], [3, 5], force_finite=False), -math.inf
         )
+
+    def test_squared_log_error_metrics(self):
+        actual = [3, 5, 2.5, 7]
+        predicted = [2.5, 5, 4, 8]
+        expected = sum(
+            (math.log1p(a) - math.log1p(p)) ** 2
+            for a, p in zip(actual, predicted)
+        ) / len(actual)
+        self.assertAlmostEqual(mean_squared_log_error(actual, predicted), expected)
+        self.assertAlmostEqual(root_mean_squared_log_error(actual, predicted), math.sqrt(expected))
+        with self.assertRaises(ValueError):
+            mean_squared_log_error([-1, 2], [0, 2])
 
     def test_r2_can_be_negative(self):
         self.assertLess(r2_score([1, 2, 3], [5, 5, 5]), 0)
