@@ -2,7 +2,11 @@
 
 import unittest
 
-from classification_metrics import roc_auc_score
+from classification_metrics import (
+    average_precision_score,
+    precision_recall_curve,
+    roc_auc_score,
+)
 
 
 class RocAucTests(unittest.TestCase):
@@ -34,6 +38,35 @@ class RocAucTests(unittest.TestCase):
         for call in cases:
             with self.subTest(call=call), self.assertRaises(ValueError):
                 call()
+
+
+    def test_precision_recall_curve_groups_tied_scores(self):
+        precision, recall, thresholds = precision_recall_curve(
+            [0, 1, 1, 0], [0.1, 0.4, 0.4, 0.8]
+        )
+        self.assertEqual(thresholds, [0.1, 0.4, 0.8])
+        self.assertEqual(recall, [1.0, 1.0, 0.0, 0.0])
+        self.assertEqual(precision, [0.5, 2 / 3, 0.0, 1.0])
+
+    def test_precision_recall_curve_validates_inputs(self):
+        with self.assertRaises(ValueError):
+            precision_recall_curve([], [])
+        with self.assertRaises(ValueError):
+            precision_recall_curve([0, 1], [0.1])
+        with self.assertRaises(ValueError):
+            precision_recall_curve([1, 1], [0.2, 0.8])
+        with self.assertRaises(ValueError):
+            precision_recall_curve([0, 1], [0.2, float("nan")])
+
+    def test_average_precision_uses_stepwise_recall_increments(self):
+        self.assertAlmostEqual(
+            average_precision_score([0, 0, 1, 1], [0.1, 0.4, 0.35, 0.8]),
+            5 / 6,
+        )
+        self.assertEqual(
+            average_precision_score(["n", "y"], [0.1, 0.9], positive_label="y"),
+            1.0,
+        )
 
 
 if __name__ == "__main__":

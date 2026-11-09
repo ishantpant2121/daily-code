@@ -326,3 +326,24 @@ def precision_recall_curve(
     precision.append(1.0)
     recall.append(0.0)
     return precision, recall, thresholds
+
+
+
+def average_precision_score(
+    y_true: Iterable[Any],
+    y_score: Iterable[Real],
+    *,
+    positive_label: Any = 1,
+) -> float:
+    """Return non-interpolated average precision for binary score predictions.
+
+    Average precision sums each recall increase multiplied by the precision
+    at that threshold; it is not trapezoidal precision-recall curve area.
+    """
+    precision, recall, _ = precision_recall_curve(
+        y_true, y_score, positive_label=positive_label
+    )
+    return math.fsum(
+        (recall[index] - recall[index + 1]) * precision[index]
+        for index in range(len(recall) - 1)
+    )
