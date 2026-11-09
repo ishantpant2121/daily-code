@@ -264,3 +264,66 @@ class PolynomialFeatures:
     def _check_fitted(self) -> None:
         if not self._fitted:
             raise RuntimeError("transform requires a fitted PolynomialFeatures instance")
+
+
+class VarianceThreshold:
+    """Remove features whose training-set population variance is <= threshold."""
+
+    def __init__(self, threshold: Real = 0.0) -> None:
+        if isinstance(threshold, bool) or not isinstance(threshold, Real):
+            raise ValueError("threshold must be a finite non-negative real number")
+        try:
+            value = float(threshold)
+        except (OverflowError, TypeError, ValueError):
+            raise ValueError("threshold must be a finite non-negative real number") from None
+        if not math.isfinite(value) or value < 0:
+            raise ValueError("threshold must be a finite non-negative real number")
+        self.threshold = value
+        self._fitted = False
+
+    def fit(self, values: Iterable[Iterable[Real]]) -> "VarianceThreshold":
+        matrix = _validated_matrix(values)
+        count = len(matrix)
+        self.n_features_in_ = len(matrix[0])
+        self.variances_ = []
+        for column in range(self.n_features_in_):
+            values_for_column = [row[column] for row in matrix]
+            average = math.fsum(values_for_column) / count
+            variance = math.fsum(
+                (value - average) ** 2 for value in values_for_column
+            ) / count
+            if not math.isfinite(variance):
+                raise ValueError("feature variance exceeds finite float range")
+            self.variances_.append(variance)
+        self.support_ = tuple(value > self.threshold for value in self.variances_)
+        if not any(self.support_):
+            raise ValueError("no features meet the variance threshold")
+        self._fitted = True
+        return self
+
+    def transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
+        self._check_fitted()
+        matrix = _validated_matrix(values)
+        if len(matrix[0]) != self.n_features_in_:
+            raise ValueError("input feature count does not match fitted data")
+        return [
+            [value for index, value in enumerate(row) if self.support_[index]]
+            for row in matrix
+        ]
+
+    def fit_transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
+        matrix = _validated_matrix(values)
+        self.fit(matrix)
+        return self.transform(matrix)
+
+    def get_support(self, *, indices: bool = False) -> list[bool] | list[int]:
+        self._check_fitted()
+        if type(indices) is not bool:
+            raise ValueError("indices must be a boolean")
+        if indices:
+            return [index for index, selected in enumerate(self.support_) if selected]
+        return list(self.support_)
+
+    def _check_fitted(self) -> None:
+        if not self._fitted:
+            raise RuntimeError("fit must be called before transforming data")
