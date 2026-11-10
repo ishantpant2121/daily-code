@@ -32,6 +32,13 @@ class DecisionTreeClassifierTests(unittest.TestCase):
         self.assertEqual(constrained.n_leaves_, 2)
         self.assertEqual(constrained.predict(features), labels)
 
+    def test_min_samples_split_prevents_small_nodes_from_splitting(self):
+        model = DecisionTreeClassifier(min_samples_split=5).fit(
+            [[0], [1], [2], [3]], [0, 0, 1, 1]
+        )
+        self.assertEqual(model.node_count_, 1)
+        self.assertEqual(model.n_leaves_, 1)
+
     def test_feature_importances_are_normalized(self):
         features = [[0, 5], [1, 5], [2, 5], [3, 5]]
         labels = [0, 0, 1, 1]

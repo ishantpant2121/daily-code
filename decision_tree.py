@@ -184,7 +184,7 @@ class DecisionTreeClassifier:
             counts = list(node.class_counts)
             if (
                 len(sample_indices) < self.min_samples_split
-                or depth >= self.max_depth if self.max_depth is not None else False
+                or (self.max_depth is not None and depth >= self.max_depth)
             ):
                 continue
             if sum(count > 0 for count in counts) <= 1:
