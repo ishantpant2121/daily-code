@@ -1,6 +1,7 @@
 """Tests for cross-validation diagnostics and prediction helpers."""
 
 import unittest
+from unittest.mock import patch
 
 from decision_tree import DecisionTreeClassifier
 from model_selection import cross_validate
@@ -41,6 +42,28 @@ class CrossValidateTests(unittest.TestCase):
         self.assertEqual(len(result["estimator"]), 4)
         self.assertTrue(all(model._fitted for model in result["estimator"]))
         self.assertFalse(original._fitted)
+
+    def test_score_time_excludes_optional_training_score(self):
+        clock = [0.0]
+
+        def scorer(model, features, labels):
+            clock[0] += 1.0 if len(labels) == 2 else 10.0
+            return 1.0
+
+        with patch("time.perf_counter", side_effect=lambda: clock[0]):
+            result = cross_validate(
+                DecisionTreeClassifier(max_depth=2),
+                self.features,
+                self.labels,
+                cv=4,
+                scoring=scorer,
+                stratified=True,
+                return_train_score=True,
+            )
+
+        self.assertEqual(result["test_score"], [1.0] * 4)
+        self.assertEqual(result["train_score"], [1.0] * 4)
+        self.assertEqual(result["score_time"], [1.0] * 4)
 
     def test_custom_scorer_and_default_score(self):
         model = DecisionTreeClassifier(max_depth=2)

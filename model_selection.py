@@ -161,7 +161,8 @@ def cross_validate(
 
     The result always contains fit_time, score_time and test_score.
     Optional flags add training scores and the fitted estimator from each fold.
-    Timing values are descriptive and should not be compared across machines.
+    score_time measures held-out scoring only; optional training-score work is
+    excluded. Timing values are descriptive and should not be compared across machines.
     """
     import time
 
@@ -206,10 +207,11 @@ def cross_validate(
         results["fit_time"].append(time.perf_counter() - started)
 
         started = time.perf_counter()
-        results["test_score"].append(_score_estimator(model, x_validation, y_validation, scoring))
+        test_score = _score_estimator(model, x_validation, y_validation, scoring)
+        results["score_time"].append(time.perf_counter() - started)
+        results["test_score"].append(test_score)
         if return_train_score:
             results["train_score"].append(_score_estimator(model, x_train, y_train, scoring))
-        results["score_time"].append(time.perf_counter() - started)
         if return_estimator:
             results["estimator"].append(model)
     return results
