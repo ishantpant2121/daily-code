@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added timed cross-validation diagnostics and out-of-fold prediction helpers.
+- Added deterministic finite parameter grids, sampling, exhaustive and randomized search.
+- Added weighted hard/soft voting ensembles with estimator cloning and class alignment.
+- Added regression coverage and package installation for the new model-selection utilities.
+
 - Added mean, median, most-frequent, and constant feature imputation with empty-column policies.
 - Added leakage-safe transformer and estimator pipelines.
 - Added deterministic CART decision-tree classification with Gini/entropy criteria and feature importances.
