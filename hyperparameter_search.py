@@ -84,3 +84,135 @@ class ParameterSampler:
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         return iter([candidate.copy() for candidate in self._sampled])
+
+
+def _set_estimator_params(estimator: Any, parameters: Mapping[str, Any]) -> None:
+    """Set direct or pipeline-step parameters on an estimator copy."""
+    for name, value in parameters.items():
+        if "__" in name:
+            step_name, attribute = name.split("__", 1)
+            named_steps = getattr(estimator, "named_steps", None)
+            if not isinstance(named_steps, Mapping) or step_name not in named_steps:
+                raise ValueError(f"unknown pipeline step in parameter {name!r}")
+            target = named_steps[step_name]
+        else:
+            attribute = name
+            target = estimator
+        if not attribute or not hasattr(target, attribute):
+            raise ValueError(f"unknown estimator parameter {name!r}")
+        setattr(target, attribute, value)
+
+
+class GridSearchCV:
+    """Exhaustively select estimator parameters using cross-validation.
+
+    Each candidate and each fold receives a fresh deep copy. The winning
+    estimator is then fitted once on the complete input dataset. Parameter
+    names may address direct estimator attributes or Pipeline steps using
+    the step__attribute naming convention.
+    """
+
+    def __init__(
+        self,
+        estimator: Any,
+        param_grid: Mapping[str, Sequence[Any]],
+        cv: int = 5,
+        *,
+        scoring: Any = None,
+        stratified: bool = False,
+        shuffle: bool = False,
+        random_state: int | None = None,
+    ) -> None:
+        if not callable(getattr(estimator, "fit", None)):
+            raise ValueError("estimator must implement fit")
+        self.estimator = estimator
+        self.param_grid = param_grid
+        self.cv = cv
+        self.scoring = scoring
+        self.stratified = stratified
+        self.shuffle = shuffle
+        self.random_state = random_state
+        self._fitted = False
+
+    def _fit_candidates(
+        self,
+        features: list[list[Any]],
+        labels: list[Any],
+        candidates: list[dict[str, Any]],
+    ) -> "GridSearchCV":
+        import math
+        from model_selection import cross_val_score
+
+        if not candidates:
+            raise ValueError("parameter search requires at least one candidate")
+        rows = []
+        best_index = 0
+        best_score = -math.inf
+        for index, parameters in enumerate(candidates):
+            candidate = deepcopy(self.estimator)
+            _set_estimator_params(candidate, parameters)
+            scores = cross_val_score(
+                candidate,
+                features,
+                labels,
+                self.cv,
+                scoring=self.scoring,
+                stratified=self.stratified,
+                shuffle=self.shuffle,
+                random_state=self.random_state,
+            )
+            mean_score = math.fsum(scores) / len(scores)
+            variance = math.fsum((score - mean_score) ** 2 for score in scores) / len(scores)
+            row = {"params": parameters.copy(), "mean_test_score": mean_score,
+                   "std_test_score": math.sqrt(variance)}
+            row.update({f"split{fold}_test_score": score for fold, score in enumerate(scores)})
+            rows.append(row)
+            if mean_score > best_score:
+                best_index = index
+                best_score = mean_score
+
+        self.cv_results_ = {
+            key: [row[key] for row in rows]
+            for key in rows[0]
+        }
+        self.best_index_ = best_index
+        self.best_params_ = candidates[best_index].copy()
+        self.best_score_ = best_score
+        self.best_estimator_ = deepcopy(self.estimator)
+        _set_estimator_params(self.best_estimator_, self.best_params_)
+        self.best_estimator_.fit(features, labels)
+        self.n_splits_ = self.cv
+        self._fitted = True
+        return self
+
+    def fit(self, features: Iterable[Iterable[Any]], labels: Iterable[Any]) -> "GridSearchCV":
+        from model_selection import _feature_rows
+
+        matrix = _feature_rows(features)
+        target = list(labels)
+        if len(matrix) != len(target):
+            raise ValueError("features and labels must have equal sample counts")
+        candidates = list(ParameterGrid(self.param_grid))
+        return self._fit_candidates(matrix, target, candidates)
+
+    def _check_fitted(self) -> None:
+        if not self._fitted:
+            raise RuntimeError("fit must be called before using the search result")
+
+    def predict(self, features: Iterable[Iterable[Any]]) -> list[Any]:
+        self._check_fitted()
+        return self.best_estimator_.predict(features)
+
+    def predict_proba(self, features: Iterable[Iterable[Any]]) -> list[list[float]]:
+        self._check_fitted()
+        method = getattr(self.best_estimator_, "predict_proba", None)
+        if not callable(method):
+            raise AttributeError("best estimator does not implement predict_proba")
+        return method(features)
+
+    def score(self, features: Iterable[Iterable[Any]], labels: Iterable[Any]) -> float:
+        self._check_fitted()
+        method = getattr(self.best_estimator_, "score", None)
+        if not callable(method):
+            raise AttributeError("best estimator does not implement score")
+        return method(features, labels)
