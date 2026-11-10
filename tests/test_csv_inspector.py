@@ -130,7 +130,7 @@ class CLITests(unittest.TestCase):
         with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as raised:
             main(["--version"])
         self.assertEqual(raised.exception.code, 0)
-        self.assertEqual(output.getvalue().strip(), "csv-inspector 0.1.0")
+        self.assertEqual(output.getvalue().strip(), "csv-inspector 0.2.0")
 
     def test_duplicate_and_custom_missing_cli_options(self):
         sample = self.path.with_name(self.path.stem + "-duplicates.csv")

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Synchronized the CLI and built distribution version through the package version source.
+
 - Added timed cross-validation diagnostics and out-of-fold prediction helpers.
 - Added deterministic finite parameter grids, sampling, exhaustive and randomized search.
 - Added weighted hard/soft voting ensembles with estimator cloning and class alignment.
