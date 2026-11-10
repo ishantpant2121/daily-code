@@ -52,3 +52,35 @@ class ParameterGrid:
             if position == index:
                 return candidate
         raise IndexError("parameter grid index out of range")
+
+
+class ParameterSampler:
+    """Sample distinct candidates from a finite parameter grid reproducibly.
+
+    This deliberately supports finite sequences only. Sampling is without
+    replacement, so n_iter cannot exceed the number of grid combinations.
+    """
+
+    def __init__(
+        self,
+        param_distributions: Mapping[str, Sequence[Any]],
+        n_iter: int,
+        *,
+        random_state: int | None = None,
+    ) -> None:
+        import random
+
+        if type(n_iter) is not int or n_iter < 1:
+            raise ValueError("n_iter must be a positive integer")
+        if random_state is not None and type(random_state) is not int:
+            raise ValueError("random_state must be an integer or None")
+        candidates = list(ParameterGrid(param_distributions))
+        if n_iter > len(candidates):
+            raise ValueError("n_iter cannot exceed the number of finite parameter combinations")
+        self._sampled = random.Random(random_state).sample(candidates, n_iter)
+
+    def __len__(self) -> int:
+        return len(self._sampled)
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        return iter([candidate.copy() for candidate in self._sampled])
