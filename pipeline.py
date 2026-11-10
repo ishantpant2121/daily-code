@@ -19,10 +19,10 @@ def _matrix(values: Iterable[Iterable[Any]]) -> list[list[Any]]:
 class Pipeline:
     """Apply fitted transformers in order, then delegate to a final estimator.
 
-    Each intermediate step must implement fit(X) and transform(X). The final
-    step must implement fit(X, y) or fit(X), plus predict(X). A pipeline fit
-    learns every transform only from the data passed to fit, so validation
-    and test rows are transformed without contributing to learned statistics.
+    Each intermediate step must implement fit(X) and transform(X), preserving
+    the number of samples. The final step must implement fit(X, y) or fit(X),
+    plus predict(X). A pipeline fit learns every transform only from the data
+    passed to fit, so held-out rows do not contribute to learned statistics.
     """
 
     def __init__(self, steps: Iterable[tuple[str, Any]]) -> None:
@@ -76,7 +76,10 @@ class Pipeline:
         transformed = rows
         for _, transformer in self.steps[:-1]:
             transformer.fit(transformed)
-            transformed = _matrix(transformer.transform(transformed))
+            next_transformed = _matrix(transformer.transform(transformed))
+            if len(next_transformed) != len(transformed):
+                raise ValueError("pipeline transformers must preserve sample count")
+            transformed = next_transformed
 
         estimator = self.steps[-1][1]
         if target is None:
@@ -120,7 +123,10 @@ class Pipeline:
         if len(transformed[0]) != self.n_features_in_:
             raise ValueError("input feature count does not match fitted data")
         for _, transformer in self.steps[:-1]:
-            transformed = _matrix(transformer.transform(transformed))
+            next_transformed = _matrix(transformer.transform(transformed))
+            if len(next_transformed) != len(transformed):
+                raise ValueError("pipeline transformers must preserve sample count")
+            transformed = next_transformed
         return transformed
 
     def _check_fitted(self) -> None:

@@ -63,6 +63,26 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             pipeline.predict([[1, 2]])
 
+    def test_predict_rejects_transformers_that_change_sample_count(self):
+        class DropOnSecondTransform:
+            def __init__(self):
+                self.calls = 0
+
+            def fit(self, features):
+                return self
+
+            def transform(self, features):
+                self.calls += 1
+                return features if self.calls == 1 else features[:-1]
+
+        pipeline = Pipeline([
+            ("dropper", DropOnSecondTransform()),
+            ("classifier", LogisticRegression(max_iter=100)),
+        ])
+        pipeline.fit([[-2], [-1], [1], [2]], ["low", "low", "high", "high"])
+        with self.assertRaisesRegex(ValueError, "preserve sample count"):
+            pipeline.predict([[-2], [2]])
+
     def test_delegates_score_and_reports_missing_optional_methods(self):
         pipeline = Pipeline([("classifier", LogisticRegression(max_iter=100))])
         with self.assertRaises(RuntimeError):
