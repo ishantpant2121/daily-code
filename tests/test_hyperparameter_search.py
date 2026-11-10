@@ -58,5 +58,56 @@ class ParameterSamplerTests(unittest.TestCase):
             ParameterGrid({"depth": (value for value in [1, 2])})
 
 
+class GridSearchCVTests(unittest.TestCase):
+    def test_selects_parameters_and_refits_best_estimator(self):
+        from decision_tree import DecisionTreeClassifier
+        from hyperparameter_search import GridSearchCV
+
+        features = [[0], [1], [2], [3], [10], [11], [12], [13]]
+        labels = [0, 0, 0, 0, 1, 1, 1, 1]
+        search = GridSearchCV(
+            DecisionTreeClassifier(),
+            {"max_depth": [1, 2, 3]},
+            cv=4,
+            scoring="accuracy",
+            stratified=True,
+        ).fit(features, labels)
+        self.assertEqual(search.best_score_, 1.0)
+        self.assertEqual(search.best_params_, {"max_depth": 1})
+        self.assertEqual(search.predict(features), labels)
+        self.assertEqual(len(search.cv_results_["mean_test_score"]), 3)
+        self.assertTrue(search.best_estimator_._fitted)
+
+    def test_supports_pipeline_step_parameters(self):
+        from decision_tree import DecisionTreeClassifier
+        from hyperparameter_search import GridSearchCV
+        from pipeline import Pipeline
+        from preprocessing import StandardScaler
+
+        features = [[0], [1], [2], [8], [9], [10]]
+        labels = [0, 0, 0, 1, 1, 1]
+        pipeline = Pipeline([
+            ("scale", StandardScaler()),
+            ("tree", DecisionTreeClassifier()),
+        ])
+        search = GridSearchCV(
+            pipeline, {"tree__max_depth": [1, 2]}, cv=3,
+            scoring="accuracy", stratified=True,
+        ).fit(features, labels)
+        self.assertEqual(search.best_params_, {"tree__max_depth": 1})
+        self.assertEqual(search.predict(features), labels)
+
+    def test_requires_fit_and_rejects_unknown_parameters(self):
+        from decision_tree import DecisionTreeClassifier
+        from hyperparameter_search import GridSearchCV
+
+        search = GridSearchCV(DecisionTreeClassifier(), {"not_a_parameter": [1]}, cv=2)
+        with self.assertRaises(RuntimeError):
+            search.predict([[0]])
+        with self.assertRaises(ValueError):
+            search.fit([[0], [1], [2], [3]], [0, 0, 1, 1])
+
+
+
 if __name__ == "__main__":
     unittest.main()
