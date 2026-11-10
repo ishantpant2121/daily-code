@@ -213,3 +213,66 @@ def cross_validate(
         if return_estimator:
             results["estimator"].append(model)
     return results
+
+
+def cross_val_predict(
+    estimator: Any,
+    features: Iterable[Iterable[Any]],
+    labels: Iterable[Any],
+    cv: int = 5,
+    *,
+    method: str = "predict",
+    stratified: bool = False,
+    shuffle: bool = False,
+    random_state: int | None = None,
+) -> list[Any]:
+    """Return one out-of-fold prediction for every sample in original order.
+
+    Every input row must appear in exactly one validation fold. This helper is
+    useful for diagnostic plots and stacking; its pooled predictions are not
+    a substitute for the mean of fold-level cross-validation scores when fold
+    sizes differ or the metric is non-decomposable.
+    """
+    matrix = _feature_rows(features)
+    target = list(labels)
+    sample_count = len(matrix)
+    if len(target) != sample_count:
+        raise ValueError("features and labels must have equal sample counts")
+    if type(cv) is not int or not 2 <= cv <= sample_count:
+        raise ValueError("cv must be an integer between 2 and the sample count")
+    if not isinstance(method, str) or not method or method.startswith("_"):
+        raise ValueError("method must be a public estimator method name")
+    if type(stratified) is not bool or type(shuffle) is not bool:
+        raise ValueError("stratified and shuffle must be booleans")
+    if random_state is not None and type(random_state) is not int:
+        raise ValueError("random_state must be an integer or None")
+    if not callable(getattr(estimator, "fit", None)):
+        raise ValueError("estimator must implement fit")
+
+    folds = (
+        stratified_k_fold_indices(target, n_splits=cv, shuffle=shuffle, random_state=random_state)
+        if stratified
+        else k_fold_indices(sample_count, n_splits=cv, shuffle=shuffle, random_state=random_state)
+    )
+    output: list[Any] = [None] * sample_count
+    assigned = [False] * sample_count
+    for train_indices, validation_indices in folds:
+        model = deepcopy(estimator)
+        x_train = [matrix[index] for index in train_indices]
+        y_train = [target[index] for index in train_indices]
+        x_validation = [matrix[index] for index in validation_indices]
+        model.fit(x_train, y_train)
+        predictor = getattr(model, method, None)
+        if not callable(predictor):
+            raise ValueError(f"estimator does not implement method {method!r}")
+        predictions = list(predictor(x_validation))
+        if len(predictions) != len(validation_indices):
+            raise ValueError("prediction method must return one result per validation row")
+        for index, prediction in zip(validation_indices, predictions):
+            if assigned[index]:
+                raise ValueError("cross-validation folds must validate each sample exactly once")
+            output[index] = prediction
+            assigned[index] = True
+    if not all(assigned):
+        raise ValueError("cross-validation folds must cover every sample exactly once")
+    return output
