@@ -8,6 +8,21 @@ from gaussian_nb import GaussianNB
 from logistic_regression import LogisticRegression
 
 
+class _FixedProbabilityClassifier:
+    def __init__(self, probabilities):
+        self.probabilities = probabilities
+
+    def fit(self, features, labels):
+        self.classes_ = tuple(dict.fromkeys(labels))
+        return self
+
+    def predict(self, features):
+        return [self.classes_[0] for _ in features]
+
+    def predict_proba(self, features):
+        return [list(self.probabilities) for _ in features]
+
+
 class VotingClassifierTests(unittest.TestCase):
     def setUp(self):
         self.features = [[-3], [-2], [-1], [1], [2], [3]]
@@ -43,6 +58,24 @@ class VotingClassifierTests(unittest.TestCase):
             weights=[1, 0],
         ).fit(self.features, self.labels)
         self.assertEqual(ensemble.predict(self.features), self.labels)
+
+    def test_rejects_weight_sum_overflow(self):
+        with self.assertRaisesRegex(ValueError, "finite positive sum"):
+            VotingClassifier(
+                [("tree", DecisionTreeClassifier()), ("bayes", GaussianNB())],
+                weights=[1e308, 1e308],
+            )
+
+    def test_rejects_probability_values_that_overflow_float_conversion(self):
+        ensemble = VotingClassifier(
+            [
+                ("large", _FixedProbabilityClassifier([10**400, 0])),
+                ("valid", _FixedProbabilityClassifier([1, 0])),
+            ],
+            voting="soft",
+        ).fit(self.features, self.labels)
+        with self.assertRaisesRegex(ValueError, "probabilities must be finite"):
+            ensemble.predict_proba([[0]])
 
     def test_rejects_invalid_configuration_and_unfitted_prediction(self):
         for kwargs in (

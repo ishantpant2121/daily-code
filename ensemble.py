@@ -63,8 +63,12 @@ class VotingClassifier:
                     raise ValueError("weights must be finite non-negative real numbers")
                 converted.append(value)
             normalized_weights = converted
-            if math.fsum(normalized_weights) <= 0:
-                raise ValueError("at least one estimator weight must be positive")
+            try:
+                total_weight = math.fsum(normalized_weights)
+            except OverflowError:
+                raise ValueError("weights must have a finite positive sum") from None
+            if not math.isfinite(total_weight) or total_weight <= 0:
+                raise ValueError("weights must have a finite positive sum")
 
         self.estimators = tuple(normalized)
         self.voting = voting
@@ -144,7 +148,10 @@ class VotingClassifier:
                     for value in values:
                         if isinstance(value, bool) or not isinstance(value, Real):
                             raise ValueError("probabilities must be finite non-negative numbers")
-                        number = float(value)
+                        try:
+                            number = float(value)
+                        except (OverflowError, TypeError, ValueError):
+                            raise ValueError("probabilities must be finite non-negative numbers") from None
                         if not math.isfinite(number) or number < 0:
                             raise ValueError("probabilities must be finite non-negative numbers")
                         converted.append(number)
