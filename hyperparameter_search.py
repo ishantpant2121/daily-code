@@ -1,6 +1,7 @@
 """Deterministic parameter-grid utilities for small educational searches."""
 
 from collections.abc import Iterable, Mapping, Sequence
+from copy import deepcopy
 from itertools import product
 from math import prod
 from typing import Any, Iterator
@@ -244,6 +245,8 @@ class RandomizedSearchCV(GridSearchCV):
         )
         if type(n_iter) is not int or n_iter < 1:
             raise ValueError("n_iter must be a positive integer")
+        if n_iter > len(ParameterGrid(param_distributions)):
+            raise ValueError("n_iter cannot exceed the number of finite parameter combinations")
         self.n_iter = n_iter
 
     def fit(self, features: Iterable[Iterable[Any]], labels: Iterable[Any]) -> "RandomizedSearchCV":
