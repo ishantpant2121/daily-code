@@ -39,7 +39,9 @@ jobs:
           from kmeans import KMeans
           from knn_regressor import KNNRegressor
           from logistic_regression import LogisticRegression
-          from model_selection import cross_val_score
+          from model_selection import cross_val_predict, cross_val_score, cross_validate
+          from hyperparameter_search import GridSearchCV, RandomizedSearchCV
+          from ensemble import VotingClassifier
           from pca import PCA
           from pipeline import Pipeline
           from preprocessing import LabelEncoder, OneHotEncoder, StandardScaler, VarianceThreshold
@@ -69,4 +71,12 @@ jobs:
           assert pipeline.fit([[0], [1], [2], [3]], [0, 0, 1, 1]).predict([[0], [3]]) == [0, 1]
           scores = cross_val_score(DecisionTreeClassifier(), [[0], [1], [2], [3], [4], [5], [10], [11], [12], [13], [14], [15]], [0] * 6 + [1] * 6, cv=3, scoring='accuracy', stratified=True)
           assert scores == [1.0, 1.0, 1.0]
+          search_x = [[0], [1], [2], [8], [9], [10]]
+          search_y = [0, 0, 0, 1, 1, 1]
+          assert len(cross_val_predict(DecisionTreeClassifier(), search_x, search_y, cv=3, stratified=True)) == 6
+          assert len(cross_validate(DecisionTreeClassifier(), search_x, search_y, cv=3, stratified=True)["test_score"]) == 3
+          assert GridSearchCV(DecisionTreeClassifier(), {"max_depth": [1, 2]}, cv=3, scoring="accuracy", stratified=True).fit(search_x, search_y).best_score_ == 1.0
+          assert RandomizedSearchCV(DecisionTreeClassifier(), {"max_depth": [1, 2]}, n_iter=2, cv=3, scoring="accuracy", stratified=True, random_state=1).fit(search_x, search_y).best_score_ == 1.0
+          voter = VotingClassifier([("tree", DecisionTreeClassifier()), ("bayes", GaussianNB())], voting="soft").fit(search_x, search_y)
+          assert voter.predict(search_x) == search_y
           PY
