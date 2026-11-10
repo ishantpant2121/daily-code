@@ -15,6 +15,12 @@ class DecisionTreeClassifierTests(unittest.TestCase):
         self.assertEqual(model.predict_proba([[0], [3]]), [[1.0, 0.0], [0.0, 1.0]])
         self.assertEqual(model.score(features, labels), 1.0)
 
+    def test_threshold_between_training_values_generalizes_to_midpoint(self):
+        model = DecisionTreeClassifier().fit(
+            [[0], [1], [3], [4]], [0, 0, 1, 1]
+        )
+        self.assertEqual(model.predict([[1.5], [2.0], [2.5]]), [0, 0, 1])
+
     def test_supports_entropy_and_multiclass_labels(self):
         features = [[0], [1], [2], [3], [4], [5]]
         labels = ["a", "a", "b", "b", "c", "c"]

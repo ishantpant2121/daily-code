@@ -140,9 +140,12 @@ class DecisionTreeClassifier:
                 gain = parent_impurity - weighted_impurity
                 if gain > best_gain + 1e-15:
                     best_gain = gain
+                    midpoint = current_value / 2.0 + next_value / 2.0
+                    if midpoint <= current_value or midpoint >= next_value:
+                        midpoint = current_value
                     best_split = (
                         feature,
-                        current_value,
+                        midpoint,
                         gain,
                         ordered[:left_size],
                         ordered[left_size:],

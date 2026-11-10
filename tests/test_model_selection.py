@@ -112,7 +112,7 @@ class CrossValScoreTests(unittest.TestCase):
             cross_val_score(
                 estimator,
                 [[0], [1], [2], [3]],
-                [0, 0, 1, 1],
+                [0, 0, 0, 1],
                 cv=2,
                 stratified=True,
             )
