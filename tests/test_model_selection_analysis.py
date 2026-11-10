@@ -67,5 +67,52 @@ class CrossValidateTests(unittest.TestCase):
                            scoring=lambda fitted, x, y: float("nan"))
 
 
+class CrossValPredictTests(unittest.TestCase):
+    def test_predictions_are_restored_to_original_sample_order(self):
+        from model_selection import cross_val_predict
+
+        features = [[-3], [-2], [-1], [1], [2], [3]]
+        labels = [0, 0, 0, 1, 1, 1]
+        predictions = cross_val_predict(
+            DecisionTreeClassifier(max_depth=2),
+            features,
+            labels,
+            cv=3,
+            stratified=True,
+            shuffle=True,
+            random_state=19,
+        )
+        self.assertEqual(predictions, labels)
+
+    def test_supports_probability_predictions(self):
+        from model_selection import cross_val_predict
+        from logistic_regression import LogisticRegression
+
+        features = [[-3], [-2], [-1], [1], [2], [3]]
+        labels = [0, 0, 0, 1, 1, 1]
+        probabilities = cross_val_predict(
+            LogisticRegression(max_iter=1000),
+            features,
+            labels,
+            cv=3,
+            method="predict_proba",
+            stratified=True,
+        )
+        self.assertEqual(len(probabilities), len(labels))
+        self.assertTrue(all(abs(sum(row) - 1.0) < 1e-9 for row in probabilities))
+
+    def test_rejects_invalid_method_and_mismatched_data(self):
+        from model_selection import cross_val_predict
+
+        model = DecisionTreeClassifier()
+        with self.assertRaises(ValueError):
+            cross_val_predict(model, [[0], [1]], [0, 1], cv=2, method="missing")
+        with self.assertRaises(ValueError):
+            cross_val_predict(model, [[0], [1]], [0], cv=2)
+        with self.assertRaises(ValueError):
+            cross_val_predict(model, [[0], [1]], [0, 1], cv=2, method="_fitted")
+
+
+
 if __name__ == "__main__":
     unittest.main()
