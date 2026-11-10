@@ -191,3 +191,85 @@ python -m unittest discover -s tests -v
 ~~~
 
 Python 3.10 or newer is required.
+
+
+## Model selection and ensembles
+
+The model-selection helpers also include timed fold diagnostics and out-of-fold
+predictions:
+
+~~~python
+from decision_tree import DecisionTreeClassifier
+from model_selection import cross_validate, cross_val_predict
+
+features = [[0], [1], [2], [8], [9], [10]]
+labels = ["low", "low", "low", "high", "high", "high"]
+tree = DecisionTreeClassifier(max_depth=2)
+
+diagnostics = cross_validate(
+    tree, features, labels, cv=3, stratified=True,
+    scoring="accuracy", return_train_score=True,
+)
+out_of_fold = cross_val_predict(
+    tree, features, labels, cv=3, stratified=True,
+)
+print(diagnostics["test_score"])
+print(out_of_fold)
+~~~
+
+cross_validate reports fit time, score time, and test scores for every fold;
+training scores and fitted fold estimators are optional. cross_val_predict
+returns one held-out prediction per input row in original row order. Use these
+predictions for diagnostics or model blending, not as a replacement for the
+mean of fold-level scores.
+
+Finite hyperparameter grids can be enumerated, sampled, or searched:
+
+~~~python
+from decision_tree import DecisionTreeClassifier
+from hyperparameter_search import GridSearchCV, RandomizedSearchCV
+
+grid = GridSearchCV(
+    DecisionTreeClassifier(),
+    {"max_depth": [1, 2, 3], "criterion": ["gini", "entropy"]},
+    cv=3,
+    scoring="accuracy",
+    stratified=True,
+).fit(features, labels)
+print(grid.best_params_, grid.best_score_)
+
+sampled = RandomizedSearchCV(
+    DecisionTreeClassifier(),
+    {"max_depth": [1, 2, 3, 4], "criterion": ["gini", "entropy"]},
+    n_iter=4,
+    cv=3,
+    scoring="accuracy",
+    stratified=True,
+    random_state=42,
+).fit(features, labels)
+print(sampled.best_params_)
+~~~
+
+The search helpers support finite parameter sequences, deterministic sampling,
+and direct estimator attributes or pipeline-step parameters such as
+tree__max_depth. The best candidate is refitted on the full training dataset.
+
+A voting ensemble can combine independent classifiers:
+
+~~~python
+from decision_tree import DecisionTreeClassifier
+from ensemble import VotingClassifier
+from gaussian_nb import GaussianNB
+
+voter = VotingClassifier(
+    [("tree", DecisionTreeClassifier()), ("bayes", GaussianNB())],
+    voting="soft",
+    weights=[2, 1],
+).fit(features, labels)
+print(voter.predict(features))
+~~~
+
+Hard voting combines predicted labels. Soft voting averages class-aligned
+probabilities and therefore requires every component classifier to implement
+predict_proba and expose classes_. Component estimators are copied before
+fitting, so the original objects remain unchanged.
