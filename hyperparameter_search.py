@@ -216,3 +216,46 @@ class GridSearchCV:
         if not callable(method):
             raise AttributeError("best estimator does not implement score")
         return method(features, labels)
+
+
+class RandomizedSearchCV(GridSearchCV):
+    """Evaluate a reproducible random subset of finite parameter combinations."""
+
+    def __init__(
+        self,
+        estimator: Any,
+        param_distributions: Mapping[str, Sequence[Any]],
+        n_iter: int = 10,
+        cv: int = 5,
+        *,
+        scoring: Any = None,
+        stratified: bool = False,
+        shuffle: bool = False,
+        random_state: int | None = None,
+    ) -> None:
+        super().__init__(
+            estimator,
+            param_distributions,
+            cv,
+            scoring=scoring,
+            stratified=stratified,
+            shuffle=shuffle,
+            random_state=random_state,
+        )
+        if type(n_iter) is not int or n_iter < 1:
+            raise ValueError("n_iter must be a positive integer")
+        self.n_iter = n_iter
+
+    def fit(self, features: Iterable[Iterable[Any]], labels: Iterable[Any]) -> "RandomizedSearchCV":
+        from model_selection import _feature_rows
+
+        matrix = _feature_rows(features)
+        target = list(labels)
+        if len(matrix) != len(target):
+            raise ValueError("features and labels must have equal sample counts")
+        candidates = list(
+            ParameterSampler(self.param_grid, self.n_iter, random_state=self.random_state)
+        )
+        self.sampled_params_ = [candidate.copy() for candidate in candidates]
+        self._fit_candidates(matrix, target, candidates)
+        return self
