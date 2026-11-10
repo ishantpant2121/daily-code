@@ -1,6 +1,6 @@
 """Deterministic parameter-grid utilities for small educational searches."""
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from itertools import product
 from math import prod
 from typing import Any, Iterator
