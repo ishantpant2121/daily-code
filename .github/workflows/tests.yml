@@ -33,12 +33,16 @@ jobs:
           cd /tmp
           python - <<'PY'
           from classification_metrics import average_precision_score, balanced_accuracy_score, brier_score_loss, log_loss, matthews_corrcoef, precision_recall_curve, roc_curve
+          from decision_tree import DecisionTreeClassifier
           from gaussian_nb import GaussianNB
+          from imputation import SimpleImputer
           from kmeans import KMeans
           from knn_regressor import KNNRegressor
           from logistic_regression import LogisticRegression
+          from model_selection import cross_val_score
           from pca import PCA
-          from preprocessing import LabelEncoder, OneHotEncoder, VarianceThreshold
+          from pipeline import Pipeline
+          from preprocessing import LabelEncoder, OneHotEncoder, StandardScaler, VarianceThreshold
           from regression_metrics import explained_variance_score, mean_squared_log_error
 
           assert balanced_accuracy_score([0, 1], [0, 1]) == 1.0
@@ -58,4 +62,11 @@ jobs:
           assert OneHotEncoder().fit_transform([["a"], ["b"]]) == [[1, 0], [0, 1]]
           assert LabelEncoder().fit_transform(["a", "b"]) == [0, 1]
           assert VarianceThreshold().fit_transform([[1, 0], [2, 0]]) == [[1.0], [2.0]]
+          assert SimpleImputer().fit_transform([[1], [None], [3]]) == [[1], [2.0], [3]]
+          tree = DecisionTreeClassifier().fit([[0], [1], [2], [3]], [0, 0, 1, 1])
+          assert tree.predict([[0], [3]]) == [0, 1]
+          pipeline = Pipeline([('scale', StandardScaler()), ('tree', DecisionTreeClassifier())])
+          assert pipeline.fit([[0], [1], [2], [3]], [0, 0, 1, 1]).predict([[0], [3]]) == [0, 1]
+          scores = cross_val_score(DecisionTreeClassifier(), [[0], [1], [2], [3], [4], [5]], [0, 0, 0, 1, 1, 1], cv=3, scoring='accuracy', stratified=True)
+          assert scores == [1.0, 1.0, 1.0]
           PY

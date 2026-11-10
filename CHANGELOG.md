@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added mean, median, most-frequent, and constant feature imputation with empty-column policies.
+- Added leakage-safe transformer and estimator pipelines.
+- Added deterministic CART decision-tree classification with Gini/entropy criteria and feature importances.
+- Added reproducible cross-validation scoring with optional stratification and fresh estimator copies.
 - Added finite-weight validation for Dijkstra and minimum-spanning-tree inputs.
 - Added Bellman-Ford, Floyd-Warshall, and iterative strongly connected components.
 - Added stratified train/test and K-fold splitting utilities.

@@ -110,6 +110,11 @@ negative cycles respectively. MST helpers support finite negative weights.
 - **statistics_utils.py** — mean, median, interpolated quantiles, sample/population
   variance, standard deviation, covariance, and Pearson correlation.
 
+- **decision_tree.py** — deterministic CART classification with Gini or entropy splits, leaf probabilities, depth and sample constraints, and feature importances.
+- **imputation.py** — SimpleImputer with mean, median, most-frequent, and constant strategies, configurable missing sentinels, and empty-column handling.
+- **pipeline.py** — ordered transformer and estimator composition so preprocessing statistics are learned from training data only.
+- **model_selection.py** — reproducible cross-validation scoring with optional stratification and fresh estimator copies per fold.
+
 Example classification workflow:
 
 ~~~python
@@ -148,6 +153,34 @@ to validation or test data. This avoids leaking information from held-out sample
 into the training process. These utilities are educational, small-data tools and
 do not replace the broader functionality or numerical performance of dedicated
 scientific-computing libraries.
+
+Additional model-selection and pipeline example:
+
+~~~python
+from decision_tree import DecisionTreeClassifier
+from imputation import SimpleImputer
+from model_selection import cross_val_score
+from pipeline import Pipeline
+from preprocessing import StandardScaler
+
+features = [[0.0], [1.0], [None], [8.0], [9.0], [10.0]]
+labels = ["near", "near", "near", "far", "far", "far"]
+model = Pipeline([
+    ("impute", SimpleImputer(strategy="mean")),
+    ("scale", StandardScaler()),
+    ("tree", DecisionTreeClassifier(max_depth=2)),
+])
+print(cross_val_score(
+    model, features, labels, cv=3, scoring="accuracy", stratified=True
+))
+~~~
+
+Cross-validation clones the supplied estimator for each fold. When a pipeline is
+used, imputation and scaling are fitted independently on each training fold,
+then applied to that fold's validation rows. Built-in scorers are accuracy and
+balanced accuracy; a custom scorer receives the fitted estimator, validation
+features, and validation labels. These small-data helpers are educational and
+are not intended to replace optimized model-selection libraries.
 
 ## Tests
 
