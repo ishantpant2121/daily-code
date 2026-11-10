@@ -60,8 +60,10 @@ class CrossValidateTests(unittest.TestCase):
             {"scoring": "unknown"},
             {"random_state": True},
         ):
+            options = {"cv": 4}
+            options.update(kwargs)
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
-                cross_validate(model, self.features, self.labels, cv=4, **kwargs)
+                cross_validate(model, self.features, self.labels, **options)
         with self.assertRaises(ValueError):
             cross_validate(model, self.features, self.labels, cv=4,
                            scoring=lambda fitted, x, y: float("nan"))
