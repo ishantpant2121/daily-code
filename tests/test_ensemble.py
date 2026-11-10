@@ -62,9 +62,21 @@ class VotingClassifierTests(unittest.TestCase):
         model = VotingClassifier([("tree", DecisionTreeClassifier()), ("bayes", GaussianNB())])
         with self.assertRaises(RuntimeError):
             model.predict([[0]])
+        class HardOnlyClassifier:
+            def fit(self, features, labels):
+                return self
+
+            def predict(self, features):
+                return [self.labels_[0]] * len(features)
+
+            def __init__(self):
+                self.labels_ = []
+
         with self.assertRaises(ValueError):
-            VotingClassifier([("tree", DecisionTreeClassifier()), ("bayes", GaussianNB())],
-                             voting="soft").fit(self.features, self.labels)
+            VotingClassifier(
+                [("tree", DecisionTreeClassifier()), ("hard", HardOnlyClassifier())],
+                voting="soft",
+            ).fit(self.features, self.labels)
 
 
 if __name__ == "__main__":
