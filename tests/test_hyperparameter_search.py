@@ -109,5 +109,40 @@ class GridSearchCVTests(unittest.TestCase):
 
 
 
+class RandomizedSearchCVTests(unittest.TestCase):
+    def test_reproducibly_evaluates_distinct_candidates(self):
+        from decision_tree import DecisionTreeClassifier
+        from hyperparameter_search import RandomizedSearchCV
+
+        features = [[0], [1], [2], [3], [10], [11], [12], [13]]
+        labels = [0, 0, 0, 0, 1, 1, 1, 1]
+        kwargs = dict(
+            estimator=DecisionTreeClassifier(),
+            param_distributions={"max_depth": [1, 2, 3], "criterion": ["gini", "entropy"]},
+            n_iter=4,
+            cv=4,
+            scoring="accuracy",
+            stratified=True,
+            random_state=17,
+        )
+        first = RandomizedSearchCV(**kwargs).fit(features, labels)
+        second = RandomizedSearchCV(**kwargs).fit(features, labels)
+        self.assertEqual(first.sampled_params_, second.sampled_params_)
+        self.assertEqual(len(first.sampled_params_), 4)
+        self.assertEqual(len({tuple(sorted(item.items())) for item in first.sampled_params_}), 4)
+        self.assertEqual(first.best_params_, second.best_params_)
+        self.assertEqual(first.best_score_, 1.0)
+
+    def test_rejects_invalid_iteration_count(self):
+        from decision_tree import DecisionTreeClassifier
+        from hyperparameter_search import RandomizedSearchCV
+
+        for count in (0, -1, True, 1.5, 3):
+            with self.subTest(count=count), self.assertRaises(ValueError):
+                RandomizedSearchCV(DecisionTreeClassifier(), {"max_depth": [1, 2]},
+                                   n_iter=count, cv=2)
+
+
+
 if __name__ == "__main__":
     unittest.main()
