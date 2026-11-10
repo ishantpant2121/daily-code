@@ -67,6 +67,6 @@ jobs:
           assert tree.predict([[0], [3]]) == [0, 1]
           pipeline = Pipeline([('scale', StandardScaler()), ('tree', DecisionTreeClassifier())])
           assert pipeline.fit([[0], [1], [2], [3]], [0, 0, 1, 1]).predict([[0], [3]]) == [0, 1]
-          scores = cross_val_score(DecisionTreeClassifier(), [[0], [1], [2], [3], [4], [5]], [0, 0, 0, 1, 1, 1], cv=3, scoring='accuracy', stratified=True)
+          scores = cross_val_score(DecisionTreeClassifier(), [[0], [1], [2], [3], [4], [5], [10], [11], [12], [13], [14], [15]], [0] * 6 + [1] * 6, cv=3, scoring='accuracy', stratified=True)
           assert scores == [1.0, 1.0, 1.0]
           PY
