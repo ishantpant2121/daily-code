@@ -40,8 +40,8 @@ class CrossValScoreTests(unittest.TestCase):
         self.assertFalse(estimator._fitted)
 
     def test_supports_default_estimator_score_and_custom_scorers(self):
-        features = [[0], [1], [2], [3], [4], [5]]
-        labels = [0, 0, 0, 1, 1, 1]
+        features = [[0], [1], [2], [3], [4], [5], [10], [11], [12], [13], [14], [15]]
+        labels = [0] * 6 + [1] * 6
         estimator = DecisionTreeClassifier(max_depth=2)
         self.assertEqual(
             cross_val_score(estimator, features, labels, cv=3, stratified=True),
@@ -58,8 +58,8 @@ class CrossValScoreTests(unittest.TestCase):
         self.assertEqual(custom, [1.0, 1.0, 1.0])
 
     def test_balanced_accuracy_scorer(self):
-        features = [[0], [1], [2], [3], [4], [5]]
-        labels = [0, 0, 0, 1, 1, 1]
+        features = [[0], [1], [2], [3], [4], [5], [10], [11], [12], [13], [14], [15]]
+        labels = [0] * 6 + [1] * 6
         scores = cross_val_score(
             DecisionTreeClassifier(max_depth=2),
             features,
