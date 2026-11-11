@@ -80,3 +80,48 @@ jobs:
           voter = VotingClassifier([("tree", DecisionTreeClassifier()), ("bayes", GaussianNB())], voting="soft").fit(search_x, search_y)
           assert voter.predict(search_x) == search_y
           PY
+
+      - name: Smoke-test advanced validation and model evaluation APIs
+        run: |
+          cd /tmp
+          python - <<'PY'
+          from advanced_splitting import GroupKFold, GroupShuffleSplit, LeaveOneOut, RepeatedKFold, RepeatedStratifiedKFold, StratifiedShuffleSplit, TimeSeriesSplit
+          from calibration_metrics import calibration_curve, expected_calibration_error, maximum_calibration_error
+          from clustering_metrics import adjusted_rand_score, davies_bouldin_score, silhouette_score
+          from decision_tree import DecisionTreeClassifier
+          from feature_importance import permutation_importance
+          from kmeans import KMeans
+          from model_diagnostics import bootstrap_score, learning_curve, validation_curve
+
+          labels = [0] * 6 + [1] * 6
+          assert len(TimeSeriesSplit(n_splits=3, test_size=2, gap=1).split(12)) == 3
+          groups = ["a", "a", "b", "b", "c", "c", "d", "d", "e", "e", "f", "f"]
+          assert len(GroupKFold(3).split(12, groups)) == 3
+          assert len(GroupShuffleSplit(2, test_size=0.25, random_state=1).split(12, groups)) == 2
+          assert len(RepeatedKFold(3, 2, random_state=1).split(12)) == 6
+          assert len(RepeatedStratifiedKFold(3, 2, random_state=1).split(labels)) == 6
+          assert len(StratifiedShuffleSplit(2, test_size=0.25, random_state=1).split(labels)) == 2
+          assert len(LeaveOneOut().split(12)) == 12
+
+          x = [[0.0], [0.1], [0.2], [0.3], [0.4], [0.5], [8.0], [8.1], [8.2], [8.3], [8.4], [8.5]]
+          y = [0] * 6 + [1] * 6
+          clusters = KMeans(2, random_state=4, n_init=3).fit_predict(x)
+          assert silhouette_score(x, clusters) > 0.9
+          assert davies_bouldin_score(x, clusters) < 0.1
+          assert adjusted_rand_score(y, clusters) == 1.0
+
+          fitted = DecisionTreeClassifier(max_depth=2).fit(x, y)
+          importance = permutation_importance(fitted, x, y, scoring="accuracy", n_repeats=3, random_state=1)
+          assert len(importance.importances_mean) == 1
+          learning = learning_curve(DecisionTreeClassifier(max_depth=2), x, y, train_sizes=[0.5, 1.0], cv=3, scoring="accuracy", stratified=True)
+          assert len(learning["test_scores"]) == 2
+          validation = validation_curve(DecisionTreeClassifier(), x, y, "max_depth", [1, 2], cv=3, scoring="accuracy", stratified=True)
+          assert len(validation["test_scores"]) == 2
+          interval = bootstrap_score(fitted, x, y, scoring="accuracy", n_bootstrap=20, random_state=1)
+          assert 0.0 <= interval.lower_bound <= interval.upper_bound <= 1.0
+
+          calibration = calibration_curve([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9], n_bins=2)
+          assert calibration["bin_counts"] == [2, 2]
+          assert expected_calibration_error([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9], n_bins=2) < 0.2
+          assert maximum_calibration_error([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9], n_bins=2) < 0.2
+          PY
