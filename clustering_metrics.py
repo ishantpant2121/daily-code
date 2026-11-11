@@ -79,13 +79,15 @@ def silhouette_samples(
                 sample_scores[index] = 0.0
                 continue
             within = math.fsum(
-                _distance(matrix[index], matrix[other])
+                _distance(matrix[index], matrix[other]) / (len(indices) - 1)
                 for other in indices
                 if other != index
-            ) / (len(indices) - 1)
+            )
             nearest = min(
-                math.fsum(_distance(matrix[index], matrix[other]) for other in other_indices)
-                / len(other_indices)
+                math.fsum(
+                    _distance(matrix[index], matrix[other]) / len(other_indices)
+                    for other in other_indices
+                )
                 for other_label, other_indices in cluster_items
                 if other_label != label
             )
@@ -168,11 +170,14 @@ def davies_bouldin_score(
     scatters = []
     for indices in groups.values():
         center = [
-            math.fsum(matrix[index][column] for index in indices) / len(indices)
+            math.fsum(matrix[index][column] / len(indices) for index in indices)
             for column in range(len(matrix[0]))
         ]
         centers.append(center)
-        scatter = math.fsum(_distance(matrix[index], center) for index in indices) / len(indices)
+        scatter = math.fsum(
+            _distance(matrix[index], center) / len(indices)
+            for index in indices
+        )
         scatters.append(scatter)
 
     cluster_ratios = []
@@ -182,12 +187,21 @@ def davies_bouldin_score(
             if left == right:
                 continue
             separation = _distance(centers[left], centers[right])
-            combined = scatters[left] + scatters[right]
-            ratio = math.inf if separation == 0.0 and combined > 0.0 else (
-                0.0 if separation == 0.0 else combined / separation
-            )
+            if separation == 0.0:
+                ratio = (
+                    math.inf
+                    if scatters[left] > 0.0 or scatters[right] > 0.0
+                    else 0.0
+                )
+            else:
+                ratio = (
+                    scatters[left] / separation
+                    + scatters[right] / separation
+                )
             worst = max(worst, ratio)
         cluster_ratios.append(worst)
-    return math.fsum(cluster_ratios) / len(cluster_ratios) if all(
-        math.isfinite(value) for value in cluster_ratios
-    ) else math.inf
+    return (
+        math.fsum(value / len(cluster_ratios) for value in cluster_ratios)
+        if all(math.isfinite(value) for value in cluster_ratios)
+        else math.inf
+    )
