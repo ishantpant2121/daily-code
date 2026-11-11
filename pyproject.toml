@@ -15,8 +15,11 @@ csv-inspector = "csv_inspector.cli:main"
 
 [tool.setuptools]
 py-modules = [
+    "advanced_splitting",
     "backtracking",
+    "calibration_metrics",
     "classification_metrics",
+    "clustering_metrics",
     "data_splitting",
     "decision_tree",
     "day1",
@@ -24,6 +27,7 @@ py-modules = [
     "day3_linked_lists",
     "dynamic_programming",
     "ensemble",
+    "feature_importance",
     "gaussian_nb",
     "graphs",
     "greedy",
@@ -36,6 +40,7 @@ py-modules = [
     "linear_regression",
     "logistic_regression",
     "matrix_algorithms",
+    "model_diagnostics",
     "model_selection",
     "pathfinding",
     "pipeline",
