@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added chronological, group-aware, repeated, stratified-shuffle, and leave-one-out validation splitters.
+- Added silhouette, adjusted Rand, and Davies-Bouldin clustering metrics.
+- Added permutation feature importance, learning/validation curves, and bootstrap score intervals.
+- Added binary reliability curves, expected calibration error, and maximum calibration error.
+- Added focused examples, usage guides, and regression/integration coverage for advanced evaluation tools.
+
 - Synchronized the CLI and built distribution version through the package version source.
 
 - Added timed cross-validation diagnostics and out-of-fold prediction helpers.
