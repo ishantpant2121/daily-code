@@ -273,3 +273,26 @@ Hard voting combines predicted labels. Soft voting averages class-aligned
 probabilities and therefore requires every component classifier to implement
 predict_proba and expose classes_. Component estimators are copied before
 fitting, so the original objects remain unchanged.
+
+
+## Advanced validation and model evaluation
+
+- **advanced_splitting.py** — chronological `TimeSeriesSplit`, group-disjoint `GroupKFold` and `GroupShuffleSplit`, repeated K-fold and stratified K-fold, stratified randomized holdouts, and leave-one-out indices. Use chronological or group-aware splits when random row-level splitting would leak information.
+- **clustering_metrics.py** — per-sample and mean silhouette coefficients, adjusted Rand agreement, and Davies-Bouldin cluster separation.
+- **feature_importance.py** — model-agnostic permutation importance for an already-fitted estimator, with repeat-level score drops, means, and standard deviations.
+- **model_diagnostics.py** — learning curves, validation curves (including `step__parameter` pipeline parameters), and paired bootstrap confidence intervals for a fitted model's evaluation score.
+- **calibration_metrics.py** — binary reliability bins, expected calibration error, and maximum calibration error for probability predictions.
+
+Examples:
+
+~~~bash
+python examples/time_series_validation.py
+python examples/group_validation.py
+python examples/clustering_evaluation.py
+python examples/model_inspection.py
+python examples/probability_calibration.py
+~~~
+
+Focused guides: [advanced validation](docs/advanced_validation.md), [clustering metrics](docs/clustering_metrics.md), [model inspection](docs/model_inspection.md), and [probability calibration](docs/probability_calibration.md).
+
+These are educational, dependency-free implementations. Silhouette scoring is quadratic in sample count; permutation importance performs one model scoring pass per feature and repeat; bootstrap intervals condition on the already-fitted model. Use held-out data for model inspection, and choose time- or group-aware validation whenever observations are not independent.
