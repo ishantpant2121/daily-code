@@ -18,6 +18,15 @@ class SilhouetteTests(unittest.TestCase):
         self.assertTrue(all(score > 0.95 for score in scores))
         self.assertAlmostEqual(silhouette_score(features, labels), sum(scores) / len(scores))
 
+    def test_large_finite_distances_are_averaged_without_overflow(self):
+        features = [
+            [0.0], [-5e307], [5e307], [-5e307], [5e307], [1e308], [1e308]
+        ]
+        labels = ["wide"] * 5 + ["far"] * 2
+        scores = silhouette_samples(features, labels)
+        self.assertTrue(all(math.isfinite(score) for score in scores))
+        self.assertAlmostEqual(scores[0], 0.5)
+
     def test_singleton_cluster_receives_zero(self):
         scores = silhouette_samples([[0], [1], [10], [11]], [0, 0, 1, 2])
         self.assertEqual(scores[-1], 0.0)
@@ -60,6 +69,16 @@ class DaviesBouldinTests(unittest.TestCase):
         score = davies_bouldin_score(features, [0, 0, 0, 1, 1, 1])
         self.assertGreaterEqual(score, 0.0)
         self.assertLess(score, 0.02)
+
+    def test_large_finite_values_do_not_overflow_cluster_means_or_ratios(self):
+        features = [
+            [-1e308, 0.0],
+            [1e308, 0.0],
+            [-1e308, 1e308],
+            [1e308, 1e308],
+        ]
+        score = davies_bouldin_score(features, [0, 0, 1, 1])
+        self.assertAlmostEqual(score, 2.0)
 
     def test_coincident_centroids_with_spread_are_infinite(self):
         score = davies_bouldin_score(
