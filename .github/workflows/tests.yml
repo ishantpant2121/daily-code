@@ -125,3 +125,13 @@ jobs:
           assert expected_calibration_error([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9], n_bins=2) < 0.2
           assert maximum_calibration_error([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9], n_bins=2) < 0.2
           PY
+
+      - name: Run advanced validation and model-inspection examples
+        run: |
+          python examples/time_series_validation.py
+          python examples/group_validation.py
+          python examples/clustering_evaluation.py
+          python examples/model_inspection.py
+          python examples/probability_calibration.py
+          python examples/permutation_importance.py
+          python examples/bootstrap_confidence_interval.py
