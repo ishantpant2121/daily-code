@@ -149,6 +149,7 @@ class BootstrapScoreTests(unittest.TestCase):
             {"confidence_level": 1.0},
             {"confidence_level": float("nan")},
             {"random_state": True},
+            {"scoring": "roc_auc"},
         ):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 bootstrap_score(model, features, labels, **kwargs)

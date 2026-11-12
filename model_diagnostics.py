@@ -233,6 +233,11 @@ def bootstrap_score(
         raise ValueError("confidence_level must be a finite number between zero and one")
     if random_state is not None and type(random_state) is not int:
         raise ValueError("random_state must be an integer or None")
+    if scoring is not None and not callable(scoring) and scoring not in (
+        "accuracy",
+        "balanced_accuracy",
+    ):
+        raise ValueError("scoring must be None, a supported name, or a callable")
     matrix = _feature_rows(features)
     try:
         target = list(labels)
