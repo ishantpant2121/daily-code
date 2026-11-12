@@ -1,6 +1,7 @@
 """Tests for deterministic finite hyperparameter candidate utilities."""
 
 import unittest
+from unittest.mock import patch
 
 from hyperparameter_search import ParameterGrid, ParameterSampler
 
@@ -33,6 +34,21 @@ class ParameterGridTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             _ = grid[1.5]
 
+    def test_indexing_matches_product_order_without_iterating(self):
+        grid = ParameterGrid({
+            "z": [10, 20],
+            "a": ["x", "y"],
+            "middle": [0, 1, 2],
+        })
+        expected = list(grid)
+        with patch.object(
+            ParameterGrid,
+            "__iter__",
+            side_effect=AssertionError("indexed access must not scan the grid"),
+        ):
+            actual = [grid[index] for index in range(len(grid))]
+        self.assertEqual(actual, expected)
+
 
 class ParameterSamplerTests(unittest.TestCase):
     def test_sampling_is_reproducible_and_without_replacement(self):
@@ -42,6 +58,28 @@ class ParameterSamplerTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(len(first), 4)
         self.assertEqual(len({tuple(sorted(item.items())) for item in first}), 4)
+
+    def test_large_grid_sampling_does_not_enumerate_cartesian_product(self):
+        parameters = {
+            "depth": range(100),
+            "leaf": range(100),
+            "feature": range(100),
+        }
+        with patch.object(
+            ParameterGrid,
+            "__iter__",
+            side_effect=AssertionError("sampling must not enumerate the full grid"),
+        ):
+            sampler = ParameterSampler(parameters, 7, random_state=41)
+            first = list(sampler)
+
+        second = list(ParameterSampler(parameters, 7, random_state=41))
+        self.assertEqual(first, second)
+        self.assertEqual(len(first), 7)
+        self.assertEqual(
+            len({tuple(sorted(item.items())) for item in first}),
+            7,
+        )
 
     def test_rejects_invalid_sample_counts_and_random_state(self):
         parameters = {"depth": [1, 2]}

@@ -49,10 +49,17 @@ class ParameterGrid:
             index += size
         if not 0 <= index < size:
             raise IndexError("parameter grid index out of range")
-        for position, candidate in enumerate(self):
-            if position == index:
-                return candidate
-        raise IndexError("parameter grid index out of range")
+        if not self._keys:
+            return {}
+
+        # itertools.product varies the rightmost key fastest. Mixed-radix
+        # decomposition preserves that order without scanning earlier items.
+        selected = {}
+        for key in reversed(self._keys):
+            values = self._grid[key]
+            index, offset = divmod(index, len(values))
+            selected[key] = values[offset]
+        return {key: selected[key] for key in self._keys}
 
 
 class ParameterSampler:
@@ -60,6 +67,8 @@ class ParameterSampler:
 
     This deliberately supports finite sequences only. Sampling is without
     replacement, so n_iter cannot exceed the number of grid combinations.
+    Only sampled integer positions are retained; the Cartesian product is
+    not materialized.
     """
 
     def __init__(
@@ -75,16 +84,21 @@ class ParameterSampler:
             raise ValueError("n_iter must be a positive integer")
         if random_state is not None and type(random_state) is not int:
             raise ValueError("random_state must be an integer or None")
-        candidates = list(ParameterGrid(param_distributions))
-        if n_iter > len(candidates):
+        grid = ParameterGrid(param_distributions)
+        grid_size = len(grid)
+        if n_iter > grid_size:
             raise ValueError("n_iter cannot exceed the number of finite parameter combinations")
-        self._sampled = random.Random(random_state).sample(candidates, n_iter)
+        self._grid = grid
+        self._sampled_indices = tuple(
+            random.Random(random_state).sample(range(grid_size), n_iter)
+        )
 
     def __len__(self) -> int:
-        return len(self._sampled)
+        return len(self._sampled_indices)
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
-        return iter([candidate.copy() for candidate in self._sampled])
+        for index in self._sampled_indices:
+            yield self._grid[index]
 
 
 def _set_estimator_params(estimator: Any, parameters: Mapping[str, Any]) -> None:
