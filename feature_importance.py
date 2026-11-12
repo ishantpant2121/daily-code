@@ -5,7 +5,7 @@ import random
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable
 
-from model_selection import _feature_rows, _score_estimator
+from model_selection import _feature_rows, _mean_and_std, _score_estimator
 
 
 @dataclass(frozen=True)
@@ -68,13 +68,14 @@ def permutation_importance(
             for row, value in zip(permuted, values):
                 row[column] = value
             permuted_score = _score_estimator(estimator, permuted, target, scoring)
-            importances[column].append(baseline - permuted_score)
+            importance = baseline - permuted_score
+            if not math.isfinite(importance):
+                raise ValueError("permutation importance must be a finite real number")
+            importances[column].append(importance)
 
-    means = [math.fsum(values) / len(values) for values in importances]
-    standard_deviations = []
-    for values, mean in zip(importances, means):
-        variance = math.fsum((value - mean) ** 2 for value in values) / len(values)
-        standard_deviations.append(math.sqrt(variance))
+    aggregates = [_mean_and_std(values) for values in importances]
+    means = [mean for mean, _ in aggregates]
+    standard_deviations = [std for _, std in aggregates]
 
     return PermutationImportance(
         importances=importances,

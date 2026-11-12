@@ -121,6 +121,18 @@ class BootstrapScoreTests(unittest.TestCase):
         self.assertEqual(first.mean_score, 1.0)
         self.assertEqual((first.lower_bound, first.upper_bound), (1.0, 1.0))
 
+    def test_averages_extreme_finite_bootstrap_scores_without_overflow(self):
+        class LargeScoreEstimator:
+            def score(self, features, labels):
+                return 1e308
+
+        result = bootstrap_score(
+            LargeScoreEstimator(), [[0], [1]], [0, 1],
+            n_bootstrap=2, random_state=3,
+        )
+        self.assertEqual(result.mean_score, 1e308)
+        self.assertEqual((result.lower_bound, result.upper_bound), (1e308, 1e308))
+
     def test_supports_custom_scorer_and_validates_options(self):
         features = [[0], [0.1], [0.8], [1.0]]
         labels = [0, 0, 1, 1]
@@ -137,6 +149,7 @@ class BootstrapScoreTests(unittest.TestCase):
             {"confidence_level": 1.0},
             {"confidence_level": float("nan")},
             {"random_state": True},
+            {"scoring": "roc_auc"},
         ):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 bootstrap_score(model, features, labels, **kwargs)

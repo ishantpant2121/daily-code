@@ -54,6 +54,31 @@ class PermutationImportanceTests(unittest.TestCase):
         self.assertEqual(self.labels, original_labels)
         self.assertTrue(self.estimator.fitted)
 
+    def test_aggregates_large_finite_importances_without_overflow(self):
+        calls = 0
+
+        def scorer(model, features, labels):
+            nonlocal calls
+            calls += 1
+            return 1e308 if calls == 1 else 0.0
+
+        result = permutation_importance(
+            object(), [[0], [1], [2]], [0, 1, 1],
+            scoring=scorer, n_repeats=2, random_state=1,
+        )
+        self.assertEqual(result.baseline_score, 1e308)
+        self.assertEqual(result.importances_mean, [1e308])
+        self.assertEqual(result.importances_std, [0.0])
+
+    def test_rejects_unrepresentable_importance_difference(self):
+        scores = iter([1e308, -1e308])
+        with self.assertRaisesRegex(ValueError, "importance must be a finite"):
+            permutation_importance(
+                object(), [[0], [1]], [0, 1],
+                scoring=lambda model, features, labels: next(scores),
+                n_repeats=1,
+            )
+
     def test_supports_custom_scorer_and_rejects_bad_options(self):
         result = permutation_importance(
             self.estimator,

@@ -156,7 +156,7 @@ class GridSearchCV:
         candidates: list[dict[str, Any]],
     ) -> "GridSearchCV":
         import math
-        from model_selection import cross_val_score
+        from model_selection import _mean_and_std, cross_val_score
 
         if not candidates:
             raise ValueError("parameter search requires at least one candidate")
@@ -176,10 +176,9 @@ class GridSearchCV:
                 shuffle=self.shuffle,
                 random_state=self.random_state,
             )
-            mean_score = math.fsum(scores) / len(scores)
-            variance = math.fsum((score - mean_score) ** 2 for score in scores) / len(scores)
+            mean_score, std_score = _mean_and_std(scores)
             row = {"params": parameters.copy(), "mean_test_score": mean_score,
-                   "std_test_score": math.sqrt(variance)}
+                   "std_test_score": std_score}
             row.update({f"split{fold}_test_score": score for fold, score in enumerate(scores)})
             rows.append(row)
             if mean_score > best_score:
