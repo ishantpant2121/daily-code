@@ -8,7 +8,7 @@ from numbers import Real
 from typing import Any, Callable
 
 from data_splitting import k_fold_indices, stratified_k_fold_indices
-from model_selection import _feature_rows, _score_estimator, cross_validate
+from model_selection import _feature_rows, _mean_and_std, _score_estimator, cross_validate
 
 
 def _train_size_counts(
@@ -254,7 +254,7 @@ def bootstrap_score(
     tail = (1.0 - level) / 2.0
     return BootstrapScore(
         scores=scores,
-        mean_score=math.fsum(scores) / len(scores),
+        mean_score=_mean_and_std(scores)[0],
         lower_bound=_percentile(ordered, tail),
         upper_bound=_percentile(ordered, 1.0 - tail),
         confidence_level=level,

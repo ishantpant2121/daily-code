@@ -25,6 +25,29 @@ def _feature_rows(values: Iterable[Iterable[Any]]) -> list[list[Any]]:
     return rows
 
 
+def _mean_and_std(values: Iterable[float]) -> tuple[float, float]:
+    """Return population mean and standard deviation without overflow.
+
+    Scores are finite floats. Scaling them into [-1, 1] before aggregation
+    avoids overflowing both the sum and squared deviations for large values.
+    """
+    scores = list(values)
+    if not scores:
+        raise ValueError("at least one score is required")
+    scale = max(abs(score) for score in scores)
+    if scale == 0.0:
+        return 0.0, 0.0
+
+    normalized = [score / scale for score in scores]
+    mean_normalized = math.fsum(normalized) / len(normalized)
+    mean_normalized = min(1.0, max(-1.0, mean_normalized))
+    variance_normalized = math.fsum(
+        (score - mean_normalized) ** 2 for score in normalized
+    ) / len(normalized)
+    std_normalized = min(1.0, math.sqrt(variance_normalized))
+    return scale * mean_normalized, scale * std_normalized
+
+
 def cross_val_score(
     estimator: Any,
     features: Iterable[Iterable[Any]],

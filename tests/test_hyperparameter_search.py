@@ -116,6 +116,34 @@ class GridSearchCVTests(unittest.TestCase):
         self.assertEqual(len(search.cv_results_["mean_test_score"]), 3)
         self.assertTrue(search.best_estimator_._fitted)
 
+    def test_aggregates_extreme_finite_scores_without_overflow(self):
+        class ExtremeScoreEstimator:
+            def __init__(self, marker=0):
+                self.marker = marker
+
+            def fit(self, features, labels):
+                return self
+
+        features = [[1e308], [0.0], [-1e308], [0.0]]
+        labels = [0, 0, 0, 0]
+        search = GridSearchCV(
+            ExtremeScoreEstimator(),
+            {"marker": [0]},
+            cv=2,
+            scoring=lambda fitted, x, y: x[0][0],
+        ).fit(features, labels)
+        self.assertEqual(search.best_score_, 0.0)
+        self.assertEqual(search.cv_results_["std_test_score"], [1e308])
+
+        constant = GridSearchCV(
+            ExtremeScoreEstimator(),
+            {"marker": [0]},
+            cv=2,
+            scoring=lambda fitted, x, y: 1e308,
+        ).fit(features, labels)
+        self.assertEqual(constant.best_score_, 1e308)
+        self.assertEqual(constant.cv_results_["std_test_score"], [0.0])
+
     def test_supports_pipeline_step_parameters(self):
         from decision_tree import DecisionTreeClassifier
         from hyperparameter_search import GridSearchCV
