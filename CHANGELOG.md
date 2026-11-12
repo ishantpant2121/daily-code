@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Avoided full Cartesian-product materialization during randomized parameter sampling and added direct indexed grid access.
 - Added chronological, group-aware, repeated, stratified-shuffle, and leave-one-out validation splitters.
 - Added silhouette, adjusted Rand, and Davies-Bouldin clustering metrics.
 - Added permutation feature importance, learning/validation curves, and bootstrap score intervals.
