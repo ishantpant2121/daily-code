@@ -253,6 +253,10 @@ print(sampled.best_params_)
 The search helpers support finite parameter sequences, deterministic sampling,
 and direct estimator attributes or pipeline-step parameters such as
 tree__max_depth. The best candidate is refitted on the full training dataset.
+Randomized sampling selects integer positions from the finite Cartesian product
+without constructing every candidate. See the
+[hyperparameter search guide](docs/hyperparameter_search.md) for complexity
+details and a large-grid example.
 
 A voting ensemble can combine independent classifiers:
 
