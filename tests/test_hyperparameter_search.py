@@ -117,6 +117,7 @@ class GridSearchCVTests(unittest.TestCase):
         self.assertTrue(search.best_estimator_._fitted)
 
     def test_aggregates_extreme_finite_scores_without_overflow(self):
+        from hyperparameter_search import GridSearchCV
         class ExtremeScoreEstimator:
             def __init__(self, marker=0):
                 self.marker = marker

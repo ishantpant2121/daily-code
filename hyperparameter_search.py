@@ -156,7 +156,7 @@ class GridSearchCV:
         candidates: list[dict[str, Any]],
     ) -> "GridSearchCV":
         import math
-        from model_selection import cross_val_score
+        from model_selection import _mean_and_std, cross_val_score
 
         if not candidates:
             raise ValueError("parameter search requires at least one candidate")
