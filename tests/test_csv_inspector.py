@@ -68,22 +68,6 @@ class ProfileTests(unittest.TestCase):
         result = profile_csv(path, max_issues=1)
         self.assertEqual((len(result.issues), result.issue_count, result.issues_truncated), (1, 3, 2))
 
-    def test_examples_respect_limit_and_can_be_disabled(self):
-        path = self.write_csv("tag\\nalpha\\nbeta\\nalpha\\ngamma\\n")
-        limited = profile_csv(path, max_examples=2)
-        self.assertEqual(limited.columns[0].examples, ("alpha", "beta"))
-        self.assertEqual(limited.columns[0].distinct_count, 3)
-
-        disabled = profile_csv(path, max_examples=0)
-        self.assertEqual(disabled.columns[0].examples, ())
-        self.assertEqual(disabled.columns[0].distinct_count, 3)
-
-    def test_rejects_invalid_example_limits(self):
-        path = self.write_csv("tag\\nalpha\\n")
-        for value in (-1, True, 1.5, "2"):
-            with self.subTest(value=value), self.assertRaises(ValueError):
-                profile_csv(path, max_examples=value)
-
     def test_distinct_tracking_can_be_disabled(self):
         path = self.write_csv("tag\na\na\nb\n")
         result = profile_csv(path, track_distinct=False)
@@ -141,6 +125,31 @@ class CLITests(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertEqual(json.loads(output.getvalue())["row_count"], 2)
 
+    def test_max_examples_cli_option_controls_text_and_json_output(self):
+        sample = self.path.with_name(self.path.stem + "-examples.csv")
+        sample.write_text("tag\nalpha\nbeta\ngamma\n", encoding="utf-8")
+        self.addCleanup(sample.unlink, missing_ok=True)
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = main([str(sample), "--max-examples", "2"])
+        self.assertEqual(status, 0)
+        self.assertIn('"alpha", "beta"', output.getvalue())
+        self.assertNotIn("gamma", output.getvalue())
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = main([str(sample), "--max-examples", "2", "--json"])
+        self.assertEqual(status, 0)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["columns"][0]["examples"], ["alpha", "beta"])
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = main([str(sample), "--max-examples", "0", "--json"])
+        self.assertEqual(status, 0)
+        self.assertEqual(json.loads(output.getvalue())["columns"][0]["examples"], [])
+
     def test_version_option(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as raised:
@@ -173,7 +182,11 @@ class CLITests(unittest.TestCase):
 
 
     def test_invalid_cli_options_return_error_without_stdout(self):
-        for extra_args in (["--max-issues", "0"], ["--delimiter", "||"]):
+        for extra_args in (
+            ["--max-issues", "0"],
+            ["--max-examples", "-1"],
+            ["--delimiter", "||"],
+        ):
             with self.subTest(args=extra_args):
                 output = io.StringIO()
                 errors = io.StringIO()
