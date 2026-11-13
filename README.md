@@ -40,6 +40,7 @@ outside the repository.
 - **--duplicates**: count exact repeated data rows (disabled by default; retains unique row tuples in memory).
 - **--missing-value VALUE**: add a case-insensitive missing-value marker; repeat the option for multiple markers.
 - **--max-issues N**: cap stored diagnostics (default 100); the total issue count remains available.
+- **--max-examples N**: retain at most N distinct non-missing example values per column (default 5); use 0 to disable examples.
 - **--strict**: exit with status 1 when structural issues are found.
 
 Exact distinct counts use memory proportional to the number of unique non-empty
@@ -47,8 +48,9 @@ values. Use **--no-distinct** for high-cardinality or very large files. Exact
 duplicate-row detection is opt-in because it retains unique row tuples in memory;
 use it when the file size and row cardinality are appropriate. Additional missing
 markers are combined with the built-in markers and compared case-insensitively.
-Rows are streamed and issue storage is capped. The first record is treated as the
-header. Malformed rows are reported rather than silently repaired. Missing markers
+Rows are streamed, issue storage is capped, and example retention is bounded by
+the per-column limit. Example limits do not affect exact distinct counts. The
+first record is treated as the header. Malformed rows are reported rather than silently repaired. Missing markers
 are empty strings, **NA**, **N/A**, **null**, **none**, and **nan** (case-insensitive
 after trim).
 
