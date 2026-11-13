@@ -68,6 +68,22 @@ class ProfileTests(unittest.TestCase):
         result = profile_csv(path, max_issues=1)
         self.assertEqual((len(result.issues), result.issue_count, result.issues_truncated), (1, 3, 2))
 
+    def test_examples_respect_limit_and_can_be_disabled(self):
+        path = self.write_csv("tag\nalpha\nbeta\nalpha\ngamma\n")
+        limited = profile_csv(path, max_examples=2)
+        self.assertEqual(limited.columns[0].examples, ("alpha", "beta"))
+        self.assertEqual(limited.columns[0].distinct_count, 3)
+
+        disabled = profile_csv(path, max_examples=0)
+        self.assertEqual(disabled.columns[0].examples, ())
+        self.assertEqual(disabled.columns[0].distinct_count, 3)
+
+    def test_rejects_invalid_example_limits(self):
+        path = self.write_csv("tag\nalpha\n")
+        for value in (-1, True, 1.5, "2"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                profile_csv(path, max_examples=value)
+
     def test_distinct_tracking_can_be_disabled(self):
         path = self.write_csv("tag\na\na\nb\n")
         result = profile_csv(path, track_distinct=False)
