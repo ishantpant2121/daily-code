@@ -101,6 +101,10 @@ def profile_csv(
             headers = next(reader)
         except StopIteration as exc:
             raise CSVInspectionError("CSV file has no header row") from exc
+        except csv.Error as exc:
+            raise CSVInspectionError(
+                f"malformed CSV near physical line {reader.line_num}: {exc}"
+            ) from exc
         if not headers:
             raise CSVInspectionError("CSV header row is blank")
         for index, header in enumerate(headers, start=1):

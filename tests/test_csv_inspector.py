@@ -118,6 +118,13 @@ class ProfileTests(unittest.TestCase):
         with self.assertRaisesRegex(CSVInspectionError, "malformed CSV"):
             profile_csv(path)
 
+    def test_rejects_malformed_header_as_inspection_error(self):
+        path = self.write_csv('"unterminated header\n')
+        with self.assertRaisesRegex(
+            CSVInspectionError, "malformed CSV near physical line 1"
+        ):
+            profile_csv(path)
+
 
 class CLITests(unittest.TestCase):
     def setUp(self):
