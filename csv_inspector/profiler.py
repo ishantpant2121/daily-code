@@ -49,19 +49,24 @@ def profile_csv(
     encoding: str = "utf-8-sig",
     track_distinct: bool = True,
     max_issues: int = 100,
+    max_examples: int = 5,
     track_duplicates: bool = False,
     missing_values: Iterable[str] = (),
 ) -> CSVProfile:
     """Profile a CSV one record at a time and retain bounded diagnostics.
 
     Exact distinct counts use memory proportional to unique non-empty values.
-    Set track_distinct=False to avoid that allocation. Duplicate detection is
-    opt-in and retains unique row tuples in memory. Additional missing markers
-    are case-insensitive and are combined with the built-in defaults. Only the
-    first max_issues diagnostics are retained, while the total is preserved.
+    Set track_distinct=False to avoid that allocation. At most max_examples
+    distinct non-missing examples are retained per column; use zero to disable
+    examples. Duplicate detection is opt-in and retains unique row tuples in
+    memory. Additional missing markers are case-insensitive and are combined
+    with the built-in defaults. Only the first max_issues diagnostics are
+    retained, while the total is preserved.
     """
     if type(max_issues) is not int or max_issues < 1:
         raise ValueError("max_issues must be a positive integer")
+    if type(max_examples) is not int or max_examples < 0:
+        raise ValueError("max_examples must be a non-negative integer")
     if type(track_distinct) is not bool:
         raise ValueError("track_distinct must be a boolean")
     if type(track_duplicates) is not bool:
@@ -107,7 +112,9 @@ def profile_csv(
                 add_issue(RowIssue("duplicate_header", 1, f"Header {header!r} is duplicated at column {index}"))
             seen_headers.add(header)
         accumulators = [
-            ColumnAccumulator(track_distinct, missing_values=missing_markers)
+            ColumnAccumulator(
+                track_distinct, max_examples=max_examples, missing_values=missing_markers
+            )
             for _ in headers
         ]
         row_count = 0
