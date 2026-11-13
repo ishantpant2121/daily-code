@@ -1,5 +1,6 @@
 """CSV file reading and structural diagnostics."""
 
+import codecs
 import csv
 from collections.abc import Iterable
 from pathlib import Path
@@ -73,6 +74,10 @@ def profile_csv(
         raise ValueError("track_duplicates must be a boolean")
     if not isinstance(encoding, str) or not encoding.strip():
         raise ValueError("encoding must be a non-empty string")
+    try:
+        codecs.lookup(encoding)
+    except LookupError:
+        raise ValueError(f"unknown encoding: {encoding}") from None
     missing_markers = DEFAULT_MISSING_VALUES | _normalize_missing_values(missing_values)
 
     source = Path(path)
