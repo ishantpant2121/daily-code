@@ -33,6 +33,10 @@ class CSVOptionValidationTests(unittest.TestCase):
         with self.assertRaises(CSVInspectionError):
             profile_csv(self.path, delimiter=3)
 
+    def test_rejects_unknown_encoding_names(self):
+        with self.assertRaisesRegex(ValueError, "unknown encoding"):
+            profile_csv(self.path, encoding="not-a-real-codec")
+
     def test_missing_markers_must_be_an_iterable_of_strings(self):
         for values in ("unknown", (None,), 42):
             with self.subTest(values=values), self.assertRaises(ValueError):

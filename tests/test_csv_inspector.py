@@ -118,6 +118,13 @@ class ProfileTests(unittest.TestCase):
         with self.assertRaisesRegex(CSVInspectionError, "malformed CSV"):
             profile_csv(path)
 
+    def test_rejects_malformed_header_as_inspection_error(self):
+        path = self.write_csv('"unterminated header\n')
+        with self.assertRaisesRegex(
+            CSVInspectionError, "malformed CSV near physical line 1"
+        ):
+            profile_csv(path)
+
 
 class CLITests(unittest.TestCase):
     def setUp(self):
@@ -196,6 +203,16 @@ class CLITests(unittest.TestCase):
             self.assertEqual(main([str(self.path) + ".missing"]), 2)
         self.assertIn("csv-inspector: error:", errors.getvalue())
 
+
+    def test_unknown_encoding_returns_clean_cli_error(self):
+        output = io.StringIO()
+        errors = io.StringIO()
+        with contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+            status = main([str(self.path), "--encoding", "not-a-real-codec"])
+        self.assertEqual(status, 2)
+        self.assertEqual(output.getvalue(), "")
+        self.assertIn("unknown encoding", errors.getvalue())
+        self.assertNotIn("Traceback", errors.getvalue())
 
     def test_invalid_cli_options_return_error_without_stdout(self):
         for extra_args in (

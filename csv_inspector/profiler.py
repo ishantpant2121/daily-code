@@ -1,5 +1,6 @@
 """CSV file reading and structural diagnostics."""
 
+import codecs
 import csv
 from collections.abc import Iterable
 from pathlib import Path
@@ -73,6 +74,10 @@ def profile_csv(
         raise ValueError("track_duplicates must be a boolean")
     if not isinstance(encoding, str) or not encoding.strip():
         raise ValueError("encoding must be a non-empty string")
+    try:
+        codecs.lookup(encoding)
+    except LookupError:
+        raise ValueError(f"unknown encoding: {encoding}") from None
     missing_markers = DEFAULT_MISSING_VALUES | _normalize_missing_values(missing_values)
 
     source = Path(path)
@@ -101,6 +106,10 @@ def profile_csv(
             headers = next(reader)
         except StopIteration as exc:
             raise CSVInspectionError("CSV file has no header row") from exc
+        except csv.Error as exc:
+            raise CSVInspectionError(
+                f"malformed CSV near physical line {reader.line_num}: {exc}"
+            ) from exc
         if not headers:
             raise CSVInspectionError("CSV header row is blank")
         for index, header in enumerate(headers, start=1):
