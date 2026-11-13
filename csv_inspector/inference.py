@@ -70,8 +70,8 @@ class ColumnAccumulator:
         max_examples: int = 5,
         missing_values: Iterable[str] = DEFAULT_MISSING_VALUES,
     ) -> None:
-        if max_examples < 0:
-            raise ValueError("max_examples cannot be negative")
+        if type(max_examples) is not int or max_examples < 0:
+            raise ValueError("max_examples must be a non-negative integer")
         self.track_distinct = track_distinct
         self.null_count = 0
         self.kinds: set[str] = set()
