@@ -80,12 +80,17 @@ class MinMaxScaler:
                 if maximum == minimum:
                     scaled.append(lower)
                     continue
-                scale = max(abs(value), abs(minimum), abs(maximum))
-                normalized_minimum = minimum / scale
-                normalized_span = maximum / scale - normalized_minimum
-                if normalized_span == 0.0:
-                    raise ValueError("feature range is too small to scale safely")
-                fraction = (value / scale - normalized_minimum) / normalized_span
+                span = maximum - minimum
+                offset = value - minimum
+                if math.isfinite(span) and math.isfinite(offset):
+                    fraction = offset / span
+                else:
+                    scale = max(abs(value), abs(minimum), abs(maximum))
+                    normalized_minimum = minimum / scale
+                    normalized_span = maximum / scale - normalized_minimum
+                    if normalized_span == 0.0:
+                        raise ValueError("feature range is too small to scale safely")
+                    fraction = (value / scale - normalized_minimum) / normalized_span
                 transformed = lower + fraction * width
                 if not math.isfinite(transformed):
                     raise ValueError("scaled feature exceeds finite float range")
@@ -108,16 +113,24 @@ class MinMaxScaler:
                 if maximum == minimum:
                     restored.append(minimum)
                     continue
-                range_scale = max(abs(value), abs(lower), abs(upper))
-                normalized_width = upper / range_scale - lower / range_scale
-                if normalized_width == 0.0:
-                    raise ValueError("feature range is too small to invert safely")
-                fraction = (value / range_scale - lower / range_scale) / normalized_width
-                data_scale = max(abs(minimum), abs(maximum))
-                normalized_minimum = minimum / data_scale
-                normalized_span = maximum / data_scale - normalized_minimum
-                normalized_value = normalized_minimum + fraction * normalized_span
-                original = normalized_value * data_scale
+                offset = value - lower
+                if math.isfinite(offset):
+                    fraction = offset / width
+                else:
+                    range_scale = max(abs(value), abs(lower), abs(upper))
+                    normalized_width = upper / range_scale - lower / range_scale
+                    if normalized_width == 0.0:
+                        raise ValueError("feature range is too small to invert safely")
+                    fraction = (value / range_scale - lower / range_scale) / normalized_width
+                data_span = maximum - minimum
+                if math.isfinite(data_span):
+                    original = minimum + fraction * data_span
+                else:
+                    data_scale = max(abs(minimum), abs(maximum))
+                    normalized_minimum = minimum / data_scale
+                    normalized_span = maximum / data_scale - normalized_minimum
+                    normalized_value = normalized_minimum + fraction * normalized_span
+                    original = normalized_value * data_scale
                 if not math.isfinite(original):
                     raise ValueError("inverse-scaled feature exceeds finite float range")
                 restored.append(original)

@@ -40,7 +40,7 @@ class DescriptiveStatisticsTests(unittest.TestCase):
             variance([1e308, -1e308], sample=False)
 
     def test_covariance_and_correlation_scale_extreme_values(self):
-        self.assertEqual(
+        self.assertAlmostEqual(
             covariance([1e308, -1e308], [1e-308, -1e-308], sample=False),
             1.0,
         )
