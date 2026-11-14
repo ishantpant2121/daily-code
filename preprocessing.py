@@ -200,11 +200,13 @@ class StandardScaler:
             transformed = []
             for index, value in enumerate(row):
                 if self._constant_features_[index]:
-                    normalized = (
-                        value / self._feature_scales_[index]
-                        - self._normalized_means_[index]
-                    )
-                    scaled = normalized * self._feature_scales_[index]
+                    scaled = value - self.mean_[index]
+                    if not math.isfinite(scaled):
+                        normalized = (
+                            value / self._feature_scales_[index]
+                            - self._normalized_means_[index]
+                        )
+                        scaled = normalized * self._feature_scales_[index]
                     if not math.isfinite(scaled):
                         raise ValueError("standardized feature exceeds finite float range")
                     transformed.append(scaled)

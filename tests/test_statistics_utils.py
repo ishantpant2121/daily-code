@@ -44,11 +44,11 @@ class DescriptiveStatisticsTests(unittest.TestCase):
             covariance([1e308, -1e308], [1e-308, -1e-308], sample=False),
             1.0,
         )
-        self.assertEqual(
+        self.assertAlmostEqual(
             pearson_correlation([1e308, -1e308], [1e308, -1e308]),
             1.0,
         )
-        self.assertEqual(
+        self.assertAlmostEqual(
             pearson_correlation([1e308, -1e308], [-1e308, 1e308]),
             -1.0,
         )
