@@ -38,6 +38,25 @@ class MinMaxScalerTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     MinMaxScaler().fit(matrix)
 
+    def test_scales_extreme_opposite_sign_values_without_overflow(self):
+        scaler = MinMaxScaler().fit([[-1e308], [1e308]])
+        self.assertEqual(scaler.transform([[0.0]]), [[0.5]])
+        self.assertEqual(scaler.inverse_transform([[0.5]]), [[0.0]])
+        with self.assertRaises(ValueError):
+            MinMaxScaler((-1e308, 1e308))
+
+
+
+
+class VarianceThresholdTests(unittest.TestCase):
+    def test_constant_large_feature_is_removed_without_mean_overflow(self):
+        from preprocessing import VarianceThreshold
+
+        selector = VarianceThreshold().fit(
+            [[1e308, 0.0], [1e308, 1.0], [1e308, 2.0]]
+        )
+        self.assertEqual(selector.get_support(), [False, True])
+        self.assertEqual(selector.transform([[1e308, 3.0]]), [[3.0]])
 
 class StandardScalerTests(unittest.TestCase):
     def test_centers_and_scales_using_population_standard_deviation(self):
@@ -59,6 +78,14 @@ class StandardScalerTests(unittest.TestCase):
         scaler = StandardScaler().fit([[1, 2]])
         with self.assertRaises(ValueError):
             scaler.transform([[1]])
+
+    def test_handles_large_constant_and_opposite_sign_features(self):
+        scaler = StandardScaler().fit([[1e308], [1e308]])
+        self.assertEqual(scaler.transform([[1e308], [1e308]]), [[0.0], [0.0]])
+        self.assertEqual(scaler.inverse_transform([[0.0]]), [[1e308]])
+
+        scaler = StandardScaler().fit([[-1e308], [1e308]])
+        self.assertEqual(scaler.transform([[-1e308], [1e308]]), [[-1.0], [1.0]])
 
 
 if __name__ == "__main__":
