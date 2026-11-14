@@ -28,6 +28,31 @@ class DescriptiveStatisticsTests(unittest.TestCase):
         self.assertAlmostEqual(pearson_correlation([1, 2, 3], [2, 4, 6]), 1.0)
         self.assertAlmostEqual(pearson_correlation([1, 2, 3], [6, 4, 2]), -1.0)
 
+    def test_mean_and_deviation_avoid_unnecessary_large_intermediates(self):
+        self.assertEqual(mean([1e308, 1e308]), 1e308)
+        self.assertEqual(mean([1e308, -1e308]), 0.0)
+        self.assertEqual(variance([1e308, 1e308], sample=False), 0.0)
+        self.assertEqual(
+            standard_deviation([1e308, -1e308], sample=False),
+            1e308,
+        )
+        with self.assertRaisesRegex(ValueError, "variance exceeds"):
+            variance([1e308, -1e308], sample=False)
+
+    def test_covariance_and_correlation_scale_extreme_values(self):
+        self.assertEqual(
+            covariance([1e308, -1e308], [1e-308, -1e-308], sample=False),
+            1.0,
+        )
+        self.assertEqual(
+            pearson_correlation([1e308, -1e308], [1e308, -1e308]),
+            1.0,
+        )
+        self.assertEqual(
+            pearson_correlation([1e308, -1e308], [-1e308, 1e308]),
+            -1.0,
+        )
+
     def test_accepts_generators(self):
         self.assertEqual(mean(value for value in [2, 4, 6]), 4.0)
         self.assertEqual(covariance((x for x in [1, 2]), (x for x in [3, 5])), 1.0)
