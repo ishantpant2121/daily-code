@@ -4,6 +4,8 @@ import math
 from numbers import Real
 from typing import Iterable
 
+from statistics_utils import mean as numeric_mean
+
 
 def _feature_matrix(values: Iterable[Iterable[Real]]) -> list[list[float]]:
     rows = [list(row) for row in values]
@@ -138,7 +140,7 @@ class PCA:
 
         try:
             mean = [
-                math.fsum(row[column] for row in matrix) / sample_count
+                numeric_mean(row[column] for row in matrix)
                 for column in range(feature_count)
             ]
             centered = [

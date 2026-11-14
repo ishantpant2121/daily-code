@@ -5,6 +5,8 @@ import random
 from numbers import Real
 from typing import Iterable
 
+from statistics_utils import mean as numeric_mean
+
 
 def _feature_matrix(values: Iterable[Iterable[Real]]) -> list[list[float]]:
     rows = [list(row) for row in values]
@@ -141,8 +143,7 @@ class KMeans:
                 for cluster, indices in enumerate(groups):
                     if indices:
                         updated.append([
-                            math.fsum(matrix[index][column] for index in indices)
-                            / len(indices)
+                            numeric_mean(matrix[index][column] for index in indices)
                             for column in range(len(matrix[0]))
                         ])
                     else:

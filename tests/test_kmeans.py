@@ -57,6 +57,11 @@ class KMeansTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             model.predict([[1]])
 
+    def test_centroid_mean_handles_repeated_extreme_finite_values(self):
+        model = KMeans(1, n_init=1, random_state=1).fit([[1e308], [1e308]])
+        self.assertEqual(model.cluster_centers_, [[1e308]])
+        self.assertEqual(model.inertia_, 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
