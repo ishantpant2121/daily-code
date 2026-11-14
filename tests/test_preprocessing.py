@@ -87,6 +87,11 @@ class StandardScalerTests(unittest.TestCase):
         scaler = StandardScaler().fit([[-1e308], [1e308]])
         self.assertEqual(scaler.transform([[-1e308], [1e308]]), [[-1.0], [1.0]])
 
+    def test_constant_feature_keeps_unit_scale_for_unseen_values(self):
+        scaler = StandardScaler().fit([[5.0], [5.0]])
+        self.assertEqual(scaler.transform([[6.0]]), [[1.0]])
+        self.assertEqual(scaler.inverse_transform([[1.0]]), [[6.0]])
+
 
 if __name__ == "__main__":
     unittest.main()
