@@ -77,6 +77,7 @@ class ColumnAccumulator:
         self.kinds: set[str] = set()
         self.distinct: set[str] | None = set() if track_distinct else None
         self.examples: list[str] = []
+        self._example_values: set[str] = set()
         self.numeric_min: Decimal | None = None
         self.numeric_max: Decimal | None = None
         self.all_numeric = True
@@ -96,8 +97,16 @@ class ColumnAccumulator:
         self.kinds.add(kind)
         if self.distinct is not None:
             self.distinct.add(normalized)
-        if len(self.examples) < self.max_examples and normalized not in self.examples:
+        if (
+            len(self.examples) < self.max_examples
+            and normalized not in self._example_values
+        ):
             self.examples.append(normalized)
+            self._example_values.add(normalized)
+            # Once the example limit is full, later values cannot be retained.
+            # Release the auxiliary lookup set while preserving ordered examples.
+            if len(self.examples) == self.max_examples:
+                self._example_values.clear()
         if kind in {"integer", "number"}:
             number = Decimal(normalized)
             self.numeric_min = (
