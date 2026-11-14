@@ -58,6 +58,12 @@ class PCATests(unittest.TestCase):
         with self.assertRaises(ValueError):
             PCA().fit([[1, float("inf")], [2, 3]])
 
+    def test_constant_extreme_values_have_zero_covariance(self):
+        model = PCA().fit([[1e308, -1e308], [1e308, -1e308]])
+        self.assertEqual(model.explained_variance_, [0.0, 0.0])
+        self.assertEqual(model.explained_variance_ratio_, [0.0, 0.0])
+        self.assertEqual(model.transform([[1e308, -1e308]]), [[0.0, 0.0]])
+
 
 if __name__ == "__main__":
     unittest.main()

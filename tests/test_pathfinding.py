@@ -49,6 +49,28 @@ class AStarTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     a_star({"a": [("b", 1)], "b": []}, "a", "b", heuristic)
 
+    def test_rejects_unrepresentable_integer_weights_and_heuristics(self):
+        with self.assertRaisesRegex(ValueError, "edge weights"):
+            a_star({"a": [("b", 10 ** 400)]}, "a", "b")
+        with self.assertRaisesRegex(ValueError, "heuristic values"):
+            a_star(
+                {"a": [("b", 1)], "b": []},
+                "a",
+                "b",
+                lambda node, goal: 10 ** 400,
+            )
+
+    def test_rejects_unrepresentable_path_cost_and_priority(self):
+        with self.assertRaisesRegex(ValueError, "path cost"):
+            a_star({"s": [("a", 1e308)], "a": [("g", 1e308)]}, "s", "g")
+        with self.assertRaisesRegex(ValueError, "path priority"):
+            a_star(
+                {"s": [("g", 1e308)], "g": []},
+                "s",
+                "g",
+                lambda node, goal: 1e308 if node == "g" else 0,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

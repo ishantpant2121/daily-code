@@ -5,6 +5,8 @@ from itertools import combinations_with_replacement
 from numbers import Real
 from typing import Any, Iterable
 
+from statistics_utils import _scaled_centered, variance as numeric_variance
+
 
 def _validated_matrix(values: Iterable[Iterable[Real]]) -> list[list[float]]:
     rows = [list(row) for row in values]
@@ -40,8 +42,17 @@ class MinMaxScaler:
             or any(isinstance(v, bool) or not isinstance(v, Real) for v in feature_range)
         ):
             raise ValueError("feature_range must be a pair of real numbers")
-        lower, upper = map(float, feature_range)
-        if not math.isfinite(lower) or not math.isfinite(upper) or lower >= upper:
+        try:
+            lower, upper = map(float, feature_range)
+        except (OverflowError, TypeError, ValueError):
+            raise ValueError("feature_range must contain finite increasing bounds") from None
+        width = upper - lower
+        if (
+            not math.isfinite(lower)
+            or not math.isfinite(upper)
+            or not math.isfinite(width)
+            or lower >= upper
+        ):
             raise ValueError("feature_range must contain finite increasing bounds")
         self.feature_range = (lower, upper)
         self._fitted = False
@@ -64,8 +75,26 @@ class MinMaxScaler:
         for row in matrix:
             scaled = []
             for index, value in enumerate(row):
-                span = self.data_max_[index] - self.data_min_[index]
-                scaled.append(lower if span == 0 else lower + (value - self.data_min_[index]) * width / span)
+                minimum = self.data_min_[index]
+                maximum = self.data_max_[index]
+                if maximum == minimum:
+                    scaled.append(lower)
+                    continue
+                span = maximum - minimum
+                offset = value - minimum
+                if math.isfinite(span) and math.isfinite(offset):
+                    fraction = offset / span
+                else:
+                    scale = max(abs(value), abs(minimum), abs(maximum))
+                    normalized_minimum = minimum / scale
+                    normalized_span = maximum / scale - normalized_minimum
+                    if normalized_span == 0.0:
+                        raise ValueError("feature range is too small to scale safely")
+                    fraction = (value / scale - normalized_minimum) / normalized_span
+                transformed = lower + fraction * width
+                if not math.isfinite(transformed):
+                    raise ValueError("scaled feature exceeds finite float range")
+                scaled.append(transformed)
             result.append(scaled)
         return result
 
@@ -79,8 +108,32 @@ class MinMaxScaler:
         for row in matrix:
             restored = []
             for index, value in enumerate(row):
-                span = self.data_max_[index] - self.data_min_[index]
-                restored.append(self.data_min_[index] if span == 0 else self.data_min_[index] + (value - lower) * span / width)
+                minimum = self.data_min_[index]
+                maximum = self.data_max_[index]
+                if maximum == minimum:
+                    restored.append(minimum)
+                    continue
+                offset = value - lower
+                if math.isfinite(offset):
+                    fraction = offset / width
+                else:
+                    range_scale = max(abs(value), abs(lower), abs(upper))
+                    normalized_width = upper / range_scale - lower / range_scale
+                    if normalized_width == 0.0:
+                        raise ValueError("feature range is too small to invert safely")
+                    fraction = (value / range_scale - lower / range_scale) / normalized_width
+                data_span = maximum - minimum
+                if math.isfinite(data_span):
+                    original = minimum + fraction * data_span
+                else:
+                    data_scale = max(abs(minimum), abs(maximum))
+                    normalized_minimum = minimum / data_scale
+                    normalized_span = maximum / data_scale - normalized_minimum
+                    normalized_value = normalized_minimum + fraction * normalized_span
+                    original = normalized_value * data_scale
+                if not math.isfinite(original):
+                    raise ValueError("inverse-scaled feature exceeds finite float range")
+                restored.append(original)
             result.append(restored)
         return result
 
@@ -108,12 +161,33 @@ class StandardScaler:
         matrix = _validated_matrix(values)
         self.n_features_in_ = len(matrix[0])
         count = len(matrix)
-        self.mean_ = [math.fsum(row[column] for row in matrix) / count for column in range(self.n_features_in_)]
+        self.mean_ = []
         self.scale_ = []
-        for column, average in enumerate(self.mean_):
-            variance = math.fsum((row[column] - average) ** 2 for row in matrix) / count
-            deviation = math.sqrt(variance)
-            self.scale_.append(deviation if deviation else 1.0)
+        self._feature_scales_ = []
+        self._normalized_means_ = []
+        self._normalized_stds_ = []
+        self._constant_features_ = []
+        for column in range(self.n_features_in_):
+            values_for_column = [row[column] for row in matrix]
+            feature_scale, _, normalized_mean, sum_squares = _scaled_centered(
+                values_for_column
+            )
+            average = feature_scale * normalized_mean
+            normalized_std = math.sqrt(sum_squares / count)
+            constant = normalized_std == 0.0
+            if constant:
+                actual_scale = 1.0
+                normalized_std = 1.0
+            else:
+                actual_scale = feature_scale * normalized_std
+                if not math.isfinite(actual_scale):
+                    raise ValueError("feature standard deviation exceeds finite float range")
+            self.mean_.append(average)
+            self.scale_.append(actual_scale)
+            self._feature_scales_.append(feature_scale if feature_scale else 1.0)
+            self._normalized_means_.append(normalized_mean)
+            self._normalized_stds_.append(normalized_std)
+            self._constant_features_.append(constant)
         self._fitted = True
         return self
 
@@ -121,13 +195,56 @@ class StandardScaler:
         self._check_fitted()
         matrix = _validated_matrix(values)
         self._check_width(matrix)
-        return [[(value - self.mean_[i]) / self.scale_[i] for i, value in enumerate(row)] for row in matrix]
+        result = []
+        for row in matrix:
+            transformed = []
+            for index, value in enumerate(row):
+                if self._constant_features_[index]:
+                    scaled = value - self.mean_[index]
+                    if not math.isfinite(scaled):
+                        normalized = (
+                            value / self._feature_scales_[index]
+                            - self._normalized_means_[index]
+                        )
+                        scaled = normalized * self._feature_scales_[index]
+                    if not math.isfinite(scaled):
+                        raise ValueError("standardized feature exceeds finite float range")
+                    transformed.append(scaled)
+                    continue
+                normalized = value / self._feature_scales_[index]
+                scaled = (
+                    normalized - self._normalized_means_[index]
+                ) / self._normalized_stds_[index]
+                if not math.isfinite(scaled):
+                    raise ValueError("standardized feature exceeds finite float range")
+                transformed.append(scaled)
+            result.append(transformed)
+        return result
 
     def inverse_transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
         self._check_fitted()
         matrix = _validated_matrix(values)
         self._check_width(matrix)
-        return [[value * self.scale_[i] + self.mean_[i] for i, value in enumerate(row)] for row in matrix]
+        result = []
+        for row in matrix:
+            restored = []
+            for index, value in enumerate(row):
+                if self._constant_features_[index]:
+                    original = value + self.mean_[index]
+                    if not math.isfinite(original):
+                        raise ValueError("inverse-standardized feature exceeds finite float range")
+                    restored.append(original)
+                    continue
+                normalized = (
+                    value * self._normalized_stds_[index]
+                    + self._normalized_means_[index]
+                )
+                original = normalized * self._feature_scales_[index]
+                if not math.isfinite(original):
+                    raise ValueError("inverse-standardized feature exceeds finite float range")
+                restored.append(original)
+            result.append(restored)
+        return result
 
     def fit_transform(self, values: Iterable[Iterable[Real]]) -> list[list[float]]:
         matrix = _validated_matrix(values)
@@ -288,13 +405,10 @@ class VarianceThreshold:
         self.variances_ = []
         for column in range(self.n_features_in_):
             values_for_column = [row[column] for row in matrix]
-            average = math.fsum(values_for_column) / count
-            variance = math.fsum(
-                (value - average) ** 2 for value in values_for_column
-            ) / count
-            if not math.isfinite(variance):
-                raise ValueError("feature variance exceeds finite float range")
-            self.variances_.append(variance)
+            feature_variance = numeric_variance(
+                values_for_column, sample=False
+            )
+            self.variances_.append(feature_variance)
         self.support_ = tuple(value > self.threshold for value in self.variances_)
         if not any(self.support_):
             raise ValueError("no features meet the variance threshold")

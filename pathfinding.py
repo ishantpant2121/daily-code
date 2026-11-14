@@ -9,6 +9,18 @@ from typing import Callable, Hashable, Mapping, Sequence, TypeVar
 Node = TypeVar("Node", bound=Hashable)
 
 
+def _finite_non_negative(value: Real, description: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ValueError(f"{description} must be real numbers")
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError(f"{description} must be finite and non-negative") from None
+    if not math.isfinite(number) or number < 0:
+        raise ValueError(f"{description} must be finite and non-negative")
+    return number
+
+
 def a_star(
     graph: Mapping[Node, Sequence[tuple[Node, Real]]],
     start: Node,
@@ -21,21 +33,18 @@ def a_star(
     heuristic for optimal A* behavior; omitting it reduces the search to
     Dijkstra's algorithm. A sequence counter avoids comparing node labels.
     """
-    for edges in graph.values():
-        for _, weight in edges:
-            if isinstance(weight, bool) or not isinstance(weight, Real):
-                raise ValueError("edge weights must be real numbers")
-            if not math.isfinite(float(weight)) or weight < 0:
-                raise ValueError("edge weights must be finite and non-negative")
+    validated_graph = {}
+    for node, edges in graph.items():
+        validated_edges = []
+        for neighbor, weight in edges:
+            validated_edges.append(
+                (neighbor, _finite_non_negative(weight, "edge weights"))
+            )
+        validated_graph[node] = validated_edges
 
     def estimate(node: Node) -> float:
         value = 0 if heuristic is None else heuristic(node, goal)
-        if isinstance(value, bool) or not isinstance(value, Real):
-            raise ValueError("heuristic values must be real numbers")
-        result = float(value)
-        if not math.isfinite(result) or result < 0:
-            raise ValueError("heuristic values must be finite and non-negative")
-        return result
+        return _finite_non_negative(value, "heuristic values")
 
     sequence = count()
     best_cost: dict[Node, float] = {start: 0.0}
@@ -53,10 +62,15 @@ def a_star(
             path.reverse()
             return cost, path
 
-        for neighbor, weight in graph.get(node, ()):
-            candidate = cost + float(weight)
+        for neighbor, weight in validated_graph.get(node, ()):
+            candidate = cost + weight
+            if not math.isfinite(candidate):
+                raise ValueError("path cost exceeds finite float range")
             if candidate < best_cost.get(neighbor, math.inf):
+                priority = candidate + estimate(neighbor)
+                if not math.isfinite(priority):
+                    raise ValueError("path priority exceeds finite float range")
                 best_cost[neighbor] = candidate
                 previous[neighbor] = node
-                heappush(frontier, (candidate + estimate(neighbor), next(sequence), candidate, neighbor))
+                heappush(frontier, (priority, next(sequence), candidate, neighbor))
     return None
