@@ -32,6 +32,17 @@ def _feature_matrix(values: Iterable[Iterable[Real]]) -> list[list[float]]:
     return matrix
 
 
+def _euclidean_distance(left: list[float], right: list[float]) -> float:
+    """Return a finite Euclidean distance or a consistent validation error."""
+    try:
+        distance = math.dist(left, right)
+    except OverflowError:
+        raise ValueError("distance exceeds finite float range") from None
+    if not math.isfinite(distance):
+        raise ValueError("distance exceeds finite float range")
+    return distance
+
+
 def _initialize_centers(
     matrix: list[list[float]],
     n_clusters: int,
@@ -42,12 +53,15 @@ def _initialize_centers(
     while len(centers) < n_clusters:
         distances = []
         for row in matrix:
-            distance = min(math.dist(row, center) for center in centers)
+            distance = min(_euclidean_distance(row, center) for center in centers)
             squared = distance * distance
-            if not math.isfinite(distance) or not math.isfinite(squared):
+            if not math.isfinite(squared):
                 raise ValueError("squared distance exceeds finite float range")
             distances.append(squared)
-        total = math.fsum(distances)
+        try:
+            total = math.fsum(distances)
+        except OverflowError:
+            raise ValueError("k-means initialization weight exceeds finite float range") from None
         if not math.isfinite(total):
             raise ValueError("k-means initialization weight exceeds finite float range")
         if total == 0:
@@ -74,9 +88,7 @@ def _assign(
     labels = []
     distances = []
     for row in matrix:
-        current = [math.dist(row, center) for center in centers]
-        if any(not math.isfinite(distance) for distance in current):
-            raise ValueError("distance exceeds finite float range")
+        current = [_euclidean_distance(row, center) for center in centers]
         selected = min(range(len(current)), key=current.__getitem__)
         labels.append(selected)
         distances.append(current[selected])
@@ -159,11 +171,9 @@ class KMeans:
                             updated.append(centers[cluster][:])
 
                 shifts = [
-                    math.dist(old, new)
+                    _euclidean_distance(old, new)
                     for old, new in zip(centers, updated)
                 ]
-                if any(not math.isfinite(shift) for shift in shifts):
-                    raise ValueError("centroid shift exceeds finite float range")
                 centers = updated
                 if labels == previous_labels or max(shifts, default=0.0) <= self.tol:
                     break
@@ -204,7 +214,7 @@ class KMeans:
         if len(matrix[0]) != self.n_features_in_:
             raise ValueError("input feature count does not match fitted data")
         return [
-            [math.dist(row, center) for center in self.cluster_centers_]
+            [_euclidean_distance(row, center) for center in self.cluster_centers_]
             for row in matrix
         ]
 

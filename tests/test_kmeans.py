@@ -62,6 +62,21 @@ class KMeansTests(unittest.TestCase):
         self.assertEqual(model.cluster_centers_, [[1e308]])
         self.assertEqual(model.inertia_, 0.0)
 
+    def test_transform_returns_finite_euclidean_distances(self):
+        model = KMeans(1, n_init=1, random_state=1).fit([[0.0], [2.0]])
+        self.assertEqual(model.transform([[0.0], [2.0]]), [[1.0], [1.0]])
+
+    def test_transform_rejects_unrepresentable_distances(self):
+        model = KMeans(1, n_init=1, random_state=1).fit([[1e308], [1e308]])
+        with self.assertRaisesRegex(ValueError, "distance exceeds finite float range"):
+            model.transform([[-1e308]])
+
+    def test_initialization_weight_overflow_raises_value_error(self):
+        with self.assertRaisesRegex(ValueError, "k-means initialization weight"):
+            KMeans(2, n_init=1, random_state=1).fit(
+                [[0.0], [1e154], [-1e154]]
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
