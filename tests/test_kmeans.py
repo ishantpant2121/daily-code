@@ -1,8 +1,10 @@
 """Tests for dependency-free K-means clustering."""
 
+import random
 import unittest
+from unittest.mock import patch
 
-from kmeans import KMeans
+from kmeans import KMeans, _initialize_centers
 
 
 class KMeansTests(unittest.TestCase):
@@ -76,6 +78,17 @@ class KMeansTests(unittest.TestCase):
             KMeans(2, n_init=1, random_state=1).fit(
                 [[0.0], [1e154], [-1e154]]
             )
+
+
+    def test_kmeans_plus_plus_zero_threshold_skips_zero_weight_rows(self):
+        generator = random.Random(0)
+        with patch.object(random.Random, "randrange", return_value=0), patch.object(
+            random.Random, "random", return_value=0.0
+        ):
+            centers = _initialize_centers(
+                [[0.0], [0.0], [2.0]], 2, generator
+            )
+        self.assertEqual(centers, [[0.0], [2.0]])
 
 
 if __name__ == "__main__":
