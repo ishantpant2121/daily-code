@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Standardized KMeans distance-overflow errors and handled initialization-weight summation overflow explicitly.
+
 - Added configurable per-column example limits to the CSV profiling API and CLI, including a zero-example mode.
 - Avoided full Cartesian-product materialization during randomized parameter sampling and added direct indexed grid access.
 - Added chronological, group-aware, repeated, stratified-shuffle, and leave-one-out validation splitters.
