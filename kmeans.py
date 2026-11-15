@@ -70,12 +70,20 @@ def _initialize_centers(
         else:
             threshold = generator.random() * total
             cumulative = 0.0
-            chosen = len(matrix) - 1
+            chosen = -1
+            last_positive = -1
             for index, distance in enumerate(distances):
+                if distance <= 0.0:
+                    continue
+                last_positive = index
                 cumulative += distance
-                if cumulative >= threshold:
+                if cumulative > threshold:
                     chosen = index
                     break
+            if chosen < 0:
+                # A positive total guarantees a positive weight; use the final
+                # positive-weight row if cumulative rounding misses the threshold.
+                chosen = last_positive
         selected.append(chosen)
         centers.append(matrix[chosen][:])
     return centers

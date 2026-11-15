@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Prevented k-means++ from selecting zero-weight samples when the random threshold is zero, with a safe positive-weight fallback.
+
 - Standardized KMeans distance-overflow errors and handled initialization-weight summation overflow explicitly.
 
 - Added configurable per-column example limits to the CSV profiling API and CLI, including a zero-example mode.
