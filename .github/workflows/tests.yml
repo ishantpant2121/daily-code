@@ -67,10 +67,6 @@ jobs:
           assert VarianceThreshold().fit_transform([[1, 0], [2, 0]]) == [[1.0], [2.0]]
           assert SimpleImputer().fit_transform([[1], [None], [3]]) == [[1], [2.0], [3]]
           tree = DecisionTreeClassifier().fit([[0], [1], [2], [3]], [0, 0, 1, 1])
-          forest = RandomForestClassifier(n_estimators=5, random_state=1).fit(search_x, search_y)
-          forest_probabilities = forest.predict_proba(search_x)
-          assert len(forest_probabilities) == len(search_x)
-          assert all(abs(sum(row) - 1.0) < 1e-9 for row in forest_probabilities)
           assert tree.predict([[0], [3]]) == [0, 1]
           pipeline = Pipeline([('scale', StandardScaler()), ('tree', DecisionTreeClassifier())])
           assert pipeline.fit([[0], [1], [2], [3]], [0, 0, 1, 1]).predict([[0], [3]]) == [0, 1]
@@ -78,6 +74,10 @@ jobs:
           assert scores == [1.0, 1.0, 1.0]
           search_x = [[0], [1], [2], [8], [9], [10]]
           search_y = [0, 0, 0, 1, 1, 1]
+          forest = RandomForestClassifier(n_estimators=5, random_state=1).fit(search_x, search_y)
+          forest_probabilities = forest.predict_proba(search_x)
+          assert len(forest_probabilities) == len(search_x)
+          assert all(abs(sum(row) - 1.0) < 1e-9 for row in forest_probabilities)
           assert len(cross_val_predict(DecisionTreeClassifier(), search_x, search_y, cv=3, stratified=True)) == 6
           assert len(cross_validate(DecisionTreeClassifier(), search_x, search_y, cv=3, stratified=True)["test_score"]) == 3
           assert GridSearchCV(DecisionTreeClassifier(), {"max_depth": [1, 2]}, cv=3, scoring="accuracy", stratified=True).fit(search_x, search_y).best_score_ == 1.0
