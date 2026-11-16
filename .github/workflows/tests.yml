@@ -87,6 +87,8 @@ jobs:
           assert len(forest.apply(search_x)) == len(search_x)
           assert all(len(row) == 50 for row in forest.apply(search_x))
           assert len(forest.predict_log_proba(search_x)) == len(search_x)
+          assert all(sum(row) == 50 for row in forest.predict_votes(search_x))
+          assert len(forest.feature_importances_std_) == len(search_x[0])
           assert len(cross_val_predict(DecisionTreeClassifier(), search_x, search_y, cv=3, stratified=True)) == 6
           assert len(cross_validate(DecisionTreeClassifier(), search_x, search_y, cv=3, stratified=True)["test_score"]) == 3
           assert GridSearchCV(DecisionTreeClassifier(), {"max_depth": [1, 2]}, cv=3, scoring="accuracy", stratified=True).fit(search_x, search_y).best_score_ == 1.0
