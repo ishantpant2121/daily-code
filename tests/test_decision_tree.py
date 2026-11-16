@@ -102,5 +102,41 @@ class DecisionTreeClassifierTests(unittest.TestCase):
             model.predict([[1]])
 
 
+    def test_max_features_resolves_supported_forms(self):
+        features = [[0, 0, 0, 0], [1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3]]
+        labels = [0, 0, 1, 1]
+        cases = (
+            (None, 4),
+            (3, 3),
+            (0.5, 2),
+            ("sqrt", 2),
+            ("log2", 2),
+        )
+        for value, expected in cases:
+            with self.subTest(max_features=value):
+                model = DecisionTreeClassifier(max_features=value).fit(features, labels)
+                self.assertEqual(model.max_features_, expected)
+
+    def test_random_feature_selection_is_reproducible(self):
+        features = [
+            [0, 0, 1, 1], [1, 0, 1, 0], [2, 1, 0, 1], [3, 1, 0, 0],
+            [8, 0, 1, 1], [9, 0, 1, 0], [10, 1, 0, 1], [11, 1, 0, 0],
+        ]
+        labels = [0, 0, 0, 0, 1, 1, 1, 1]
+        kwargs = {"max_features": 2, "random_state": 19, "max_depth": 3}
+        first = DecisionTreeClassifier(**kwargs).fit(features, labels)
+        second = DecisionTreeClassifier(**kwargs).fit(features, labels)
+        self.assertEqual(first.predict(features), second.predict(features))
+        self.assertEqual(first.feature_importances_, second.feature_importances_)
+        self.assertEqual(first.max_features_, 2)
+
+    def test_rejects_invalid_feature_sampling_configuration(self):
+        for value in (0, -1, 1.1, 0.0, float("nan"), True, "auto", []):
+            with self.subTest(max_features=value), self.assertRaises(ValueError):
+                DecisionTreeClassifier(max_features=value)
+        with self.assertRaises(ValueError):
+            DecisionTreeClassifier(random_state=True)
+
+
 if __name__ == "__main__":
     unittest.main()
