@@ -86,6 +86,9 @@ Graph algorithms that operate on undirected graphs expect symmetric adjacency
 lists. Dijkstra requires finite non-negative real weights; Bellman-Ford and
 Floyd-Warshall support finite negative edges and detect reachable or global
 negative cycles respectively. MST helpers support finite negative weights.
+Accumulated shortest-path costs and spanning-tree totals that exceed the finite
+floating-point range raise `OverflowError` rather than being silently treated as
+unreachable or returned as infinity.
 
 ## Data science and machine learning utilities
 

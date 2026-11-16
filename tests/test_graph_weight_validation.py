@@ -2,7 +2,14 @@
 
 import unittest
 
-from graphs import dijkstra, dijkstra_path, kruskal_mst, prim_mst
+from graphs import (
+    bellman_ford,
+    dijkstra,
+    dijkstra_path,
+    floyd_warshall,
+    kruskal_mst,
+    prim_mst,
+)
 
 
 class GraphWeightValidationTests(unittest.TestCase):
@@ -39,6 +46,37 @@ class GraphWeightValidationTests(unittest.TestCase):
             prim_mst({"a": [("b", -2)], "b": [("a", -2)]})[0],
             -2.0,
         )
+
+
+    def test_shortest_path_algorithms_reject_unrepresentable_accumulated_costs(self):
+        chain = {"s": [("a", 1e308)], "a": [("b", 1e308)], "b": []}
+        with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
+            dijkstra(chain, "s")
+        with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
+            dijkstra_path(chain, "s", "b")
+        with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
+            bellman_ford(chain, "s")
+        with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
+            floyd_warshall(chain)
+
+    def test_bellman_ford_rejects_negative_accumulation_underflow(self):
+        chain = {"s": [("a", -1e308)], "a": [("b", -1e308)], "b": []}
+        with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
+            bellman_ford(chain, "s")
+
+
+    def test_mst_algorithms_reject_unrepresentable_total_weights(self):
+        edges = [("a", "b", 1e308), ("b", "c", 1e308)]
+        with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
+            kruskal_mst(["a", "b", "c"], edges)
+
+        graph = {
+            "a": [("b", 1e308)],
+            "b": [("a", 1e308), ("c", 1e308)],
+            "c": [("b", 1e308)],
+        }
+        with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
+            prim_mst(graph)
 
 
 if __name__ == "__main__":
