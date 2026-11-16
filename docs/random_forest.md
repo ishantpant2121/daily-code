@@ -19,6 +19,8 @@ model.fit(x_train, y_train)
 
 predictions = model.predict(x_test)
 probabilities = model.predict_proba(x_test)
+log_probabilities = model.predict_log_proba(x_test)
+leaf_ids = model.apply(x_test)
 print("out-of-bag accuracy:", model.oob_score_)
 ```
 
@@ -51,12 +53,16 @@ training labels.
 - `max_samples_`: rows drawn for each tree.
 - `estimators_samples_`: the row indices drawn for each fitted tree, including
   repeated indices when bootstrap sampling is enabled.
+- `apply(X)`: sample-major terminal-node indices, with one column per tree.
+- `predict_log_proba(X)`: natural-log probabilities; zero probabilities are
+  represented as negative infinity.
 - `oob_score_`: accuracy computed from out-of-bag predictions, available only
   when `oob_score=True`.
 - `oob_decision_function_`: class-aligned mean probabilities from trees that
   did not train on each row. A row with no out-of-bag votes contains NaN values.
 - `oob_counts_`: number of trees that supplied an out-of-bag prediction for
   each training row.
+- `oob_coverage_`: fraction of training rows with at least one OOB vote.
 
 ## Out-of-bag evaluation
 
