@@ -17,9 +17,12 @@ class RandomForestClassifier:
     features. Probability columns are aligned to the complete training class
     order, including classes absent from an individual bootstrap sample.
 
+    When oob_score=True, samples omitted from each bootstrap draw contribute
+    to out-of-bag class probabilities and an accuracy estimate. Rows that
+    receive no out-of-bag votes contain NaN values in the diagnostic matrix.
+
     This compact implementation is sequential and intended for learning and
-    small datasets. It does not calculate out-of-bag scores or parallelize
-    tree fitting.
+    small datasets; it does not parallelize tree fitting.
     """
 
     def __init__(
@@ -33,12 +36,17 @@ class RandomForestClassifier:
         max_features: int | float | str | None = "sqrt",
         bootstrap: bool = True,
         max_samples: int | float | None = None,
+        oob_score: bool = False,
         random_state: int | None = None,
     ) -> None:
         if type(n_estimators) is not int or n_estimators < 1:
             raise ValueError("n_estimators must be a positive integer")
         if type(bootstrap) is not bool:
             raise ValueError("bootstrap must be a boolean")
+        if type(oob_score) is not bool:
+            raise ValueError("oob_score must be a boolean")
+        if oob_score and not bootstrap:
+            raise ValueError("oob_score requires bootstrap=True")
         if random_state is not None and type(random_state) is not int:
             raise ValueError("random_state must be an integer or None")
 
@@ -79,6 +87,7 @@ class RandomForestClassifier:
         self.max_features = max_features
         self.bootstrap = bootstrap
         self.max_samples = normalized_max_samples
+        self.oob_score = oob_score
         self.random_state = random_state
         self._fitted = False
 
@@ -114,6 +123,12 @@ class RandomForestClassifier:
 
         generator = random.Random(self.random_state)
         estimators = []
+        estimators_samples = []
+        oob_probability_sums = (
+            [[0.0] * len(classes) for _ in range(sample_count)]
+            if self.oob_score else None
+        )
+        oob_counts = [0] * sample_count if self.oob_score else None
         for _ in range(self.n_estimators):
             if self.bootstrap:
                 indices = [generator.randrange(sample_count) for _ in range(draw_count)]
@@ -133,6 +148,23 @@ class RandomForestClassifier:
                 [target[index] for index in indices],
             )
             estimators.append(estimator)
+            estimators_samples.append(tuple(indices))
+
+            if self.oob_score:
+                in_bag = set(indices)
+                oob_indices = [
+                    index for index in range(sample_count) if index not in in_bag
+                ]
+                if oob_indices:
+                    oob_probabilities = estimator.predict_proba(
+                        [matrix[index] for index in oob_indices]
+                    )
+                    for tree_column, label in enumerate(estimator.classes_):
+                        forest_column = class_positions[label]
+                        for sample_index, row in zip(oob_indices, oob_probabilities):
+                            oob_probability_sums[sample_index][forest_column] += row[tree_column]
+                    for sample_index in oob_indices:
+                        oob_counts[sample_index] += 1
 
         importances = [
             math.fsum(estimator.feature_importances_[feature] for estimator in estimators)
@@ -149,7 +181,27 @@ class RandomForestClassifier:
         self.n_samples_fit_ = sample_count
         self.max_samples_ = draw_count
         self.estimators_ = estimators
+        self.estimators_samples_ = estimators_samples
         self.feature_importances_ = importances
+        if self.oob_score:
+            decision = []
+            correct = 0
+            covered = 0
+            for sample_index, count in enumerate(oob_counts):
+                if count == 0:
+                    decision.append([math.nan] * len(classes))
+                    continue
+                row = [
+                    value / count
+                    for value in oob_probability_sums[sample_index]
+                ]
+                decision.append(row)
+                predicted_index = max(range(len(row)), key=row.__getitem__)
+                correct += classes[predicted_index] == target[sample_index]
+                covered += 1
+            self.oob_counts_ = oob_counts
+            self.oob_decision_function_ = decision
+            self.oob_score_ = correct / covered if covered else math.nan
         self._fitted = True
         return self
 
