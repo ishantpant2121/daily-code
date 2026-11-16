@@ -85,6 +85,10 @@ class RandomForestClassifierTests(unittest.TestCase):
             self.assertAlmostEqual(sum(row), 1.0)
         self.assertGreaterEqual(first.oob_score_, 0.0)
         self.assertLessEqual(first.oob_score_, 1.0)
+        self.assertAlmostEqual(
+            first.oob_coverage_,
+            sum(count > 0 for count in first.oob_counts_) / len(self.features),
+        )
 
     def test_oob_diagnostics_align_classes_missing_from_individual_trees(self):
         features = [[0.0], [1.0], [2.0], [3.0]]
@@ -107,6 +111,32 @@ class RandomForestClassifierTests(unittest.TestCase):
         self.assertEqual(forest.oob_counts_, [0])
         self.assertTrue(math.isnan(forest.oob_score_))
         self.assertTrue(all(math.isnan(value) for value in forest.oob_decision_function_[0]))
+
+    def test_apply_returns_sample_major_leaf_indices(self):
+        forest = RandomForestClassifier(
+            n_estimators=7, random_state=13
+        ).fit(self.features, self.labels)
+        leaves = forest.apply(self.features)
+        self.assertEqual(len(leaves), len(self.features))
+        self.assertTrue(all(len(row) == 7 for row in leaves))
+        self.assertTrue(all(type(value) is int and value >= 0 for row in leaves for value in row))
+        self.assertEqual(leaves, forest.apply(self.features))
+
+    def test_predict_log_proba_matches_probabilities_and_handles_zero(self):
+        forest = RandomForestClassifier(
+            n_estimators=12, max_samples=1, random_state=9
+        ).fit([[0.0], [1.0], [2.0], [3.0]], ["a", "a", "b", "b"])
+        probabilities = forest.predict_proba([[0.0], [3.0]])
+        log_probabilities = forest.predict_log_proba([[0.0], [3.0]])
+        saw_zero = False
+        for probability_row, log_row in zip(probabilities, log_probabilities):
+            for probability, log_probability in zip(probability_row, log_row):
+                if probability == 0.0:
+                    self.assertEqual(log_probability, -math.inf)
+                    saw_zero = True
+                else:
+                    self.assertAlmostEqual(log_probability, math.log(probability))
+        self.assertTrue(saw_zero)
 
     def test_oob_requires_bootstrap_and_boolean_option(self):
         for kwargs in (
@@ -145,6 +175,8 @@ class RandomForestClassifierTests(unittest.TestCase):
         forest = RandomForestClassifier(n_estimators=3, random_state=1)
         with self.assertRaises(RuntimeError):
             forest.predict([[0]])
+        with self.assertRaises(RuntimeError):
+            forest.apply([[0]])
         with self.assertRaises(ValueError):
             forest.fit([[0], [1]], [0])
         with self.assertRaises(ValueError):
