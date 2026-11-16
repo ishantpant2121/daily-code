@@ -142,7 +142,7 @@ class RandomForestClassifierTests(unittest.TestCase):
 
     def test_predict_log_proba_matches_probabilities_and_handles_zero(self):
         forest = RandomForestClassifier(
-            n_estimators=12, max_samples=1, random_state=9
+            n_estimators=1, max_samples=1, random_state=9
         ).fit([[0.0], [1.0], [2.0], [3.0]], ["a", "a", "b", "b"])
         probabilities = forest.predict_proba([[0.0], [3.0]])
         log_probabilities = forest.predict_log_proba([[0.0], [3.0]])
