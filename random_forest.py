@@ -166,9 +166,21 @@ class RandomForestClassifier:
                     for sample_index in oob_indices:
                         oob_counts[sample_index] += 1
 
+        tree_importances = [
+            estimator.feature_importances_ for estimator in estimators
+        ]
         importances = [
-            math.fsum(estimator.feature_importances_[feature] for estimator in estimators)
+            math.fsum(values[feature] for values in tree_importances)
             / self.n_estimators
+            for feature in range(len(matrix[0]))
+        ]
+        importance_std = [
+            math.sqrt(
+                math.fsum(
+                    (values[feature] - importances[feature]) ** 2
+                    for values in tree_importances
+                ) / self.n_estimators
+            )
             for feature in range(len(matrix[0]))
         ]
         total_importance = math.fsum(importances)
@@ -183,6 +195,7 @@ class RandomForestClassifier:
         self.estimators_ = estimators
         self.estimators_samples_ = estimators_samples
         self.feature_importances_ = importances
+        self.feature_importances_std_ = importance_std
         if self.oob_score:
             decision = []
             correct = 0
@@ -254,6 +267,25 @@ class RandomForestClassifier:
             [math.log(value) if value > 0.0 else -math.inf for value in row]
             for row in self.predict_proba(features)
         ]
+
+    def predict_votes(
+        self,
+        features: Iterable[Iterable[Real]],
+    ) -> list[list[int]]:
+        """Count hard class votes from each tree for every input sample.
+
+        Columns follow classes_ order. Unlike predict_proba, every tree gives
+        exactly one vote regardless of the confidence of its leaf probabilities.
+        """
+        self._check_fitted()
+        matrix = _feature_matrix(features)
+        if len(matrix[0]) != self.n_features_in_:
+            raise ValueError("input feature count does not match fitted data")
+        votes = [[0] * len(self.classes_) for _ in matrix]
+        for estimator in self.estimators_:
+            for row_index, label in enumerate(estimator.predict(matrix)):
+                votes[row_index][self._class_positions[label]] += 1
+        return votes
 
     def predict(self, features: Iterable[Iterable[Real]]) -> list[Any]:
         return [
