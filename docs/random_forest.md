@@ -21,6 +21,7 @@ predictions = model.predict(x_test)
 probabilities = model.predict_proba(x_test)
 log_probabilities = model.predict_log_proba(x_test)
 leaf_ids = model.apply(x_test)
+tree_votes = model.predict_votes(x_test)
 print("out-of-bag accuracy:", model.oob_score_)
 ```
 
@@ -48,6 +49,10 @@ training labels.
 - `classes_`: class labels in first-seen training order.
 - `estimators_`: fitted decision trees.
 - `feature_importances_`: normalized average tree impurity importances.
+- `feature_importances_std_`: per-feature population standard deviation of
+  the individual trees' normalized impurity importances.
+- `predict_votes(X)`: hard class-vote counts per sample, with columns in
+  `classes_` order. Each row sums to the number of fitted trees.
 - `n_features_in_`: number of input columns.
 - `n_samples_fit_`: original training sample count.
 - `max_samples_`: rows drawn for each tree.
