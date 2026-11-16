@@ -1,6 +1,7 @@
 """A small, deterministic CART-style decision-tree classifier."""
 
 import math
+import random
 from dataclasses import dataclass
 from numbers import Real
 from typing import Any, Iterable
@@ -46,9 +47,11 @@ class DecisionTreeClassifier:
     """Fit a binary-split classification tree using Gini or entropy impurity.
 
     Candidate thresholds are evaluated between adjacent distinct feature
-    values. Ties are resolved deterministically by feature index and then by
-    threshold order. Tree construction is iterative, avoiding Python recursion
-    limits on deep trees. Class probabilities are empirical leaf frequencies.
+    values. Optional max_features sampling selects a random feature subset at
+    each node; additional features are checked only when the sampled subset
+    cannot form a valid split. A fixed random_state makes sampling reproducible.
+    Tree construction is iterative, avoiding Python recursion limits on deep
+    trees. Class probabilities are empirical leaf frequencies.
     """
 
     def __init__(
@@ -59,6 +62,8 @@ class DecisionTreeClassifier:
         min_samples_split: int = 2,
         min_samples_leaf: int = 1,
         min_impurity_decrease: Real = 0.0,
+        max_features: int | float | str | None = None,
+        random_state: int | None = None,
     ) -> None:
         if criterion not in ("gini", "entropy"):
             raise ValueError("criterion must be 'gini' or 'entropy'")
@@ -78,11 +83,29 @@ class DecisionTreeClassifier:
             raise ValueError("min_impurity_decrease must be a finite non-negative number") from None
         if not math.isfinite(decrease) or decrease < 0:
             raise ValueError("min_impurity_decrease must be a finite non-negative number")
+        if isinstance(max_features, bool):
+            raise ValueError("max_features must be None, a positive integer, a fraction in (0, 1], 'sqrt', or 'log2'")
+        if type(max_features) is int:
+            if max_features < 1:
+                raise ValueError("integer max_features must be positive")
+        elif isinstance(max_features, Real):
+            try:
+                max_features = float(max_features)
+            except (OverflowError, TypeError, ValueError):
+                raise ValueError("fractional max_features must be finite and in (0, 1]") from None
+            if not math.isfinite(max_features) or not 0 < max_features <= 1:
+                raise ValueError("fractional max_features must be finite and in (0, 1]")
+        elif max_features not in (None, "sqrt", "log2"):
+            raise ValueError("max_features must be None, a positive integer, a fraction in (0, 1], 'sqrt', or 'log2'")
+        if random_state is not None and type(random_state) is not int:
+            raise ValueError("random_state must be an integer or None")
         self.criterion = criterion
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
         self.min_impurity_decrease = decrease
+        self.max_features = max_features
+        self.random_state = random_state
         self._fitted = False
 
     def _impurity(self, counts: list[int]) -> float:
@@ -101,6 +124,18 @@ class DecisionTreeClassifier:
             counts[encoded_labels[index]] += 1
         return tuple(counts)
 
+    def _max_feature_count(self) -> int:
+        """Resolve max_features against the fitted input width."""
+        if self.max_features is None:
+            return self.n_features_in_
+        if type(self.max_features) is int:
+            return min(self.max_features, self.n_features_in_)
+        if isinstance(self.max_features, float):
+            return max(1, int(self.max_features * self.n_features_in_))
+        if self.max_features == "sqrt":
+            return max(1, int(math.sqrt(self.n_features_in_)))
+        return max(1, int(math.log2(self.n_features_in_)))
+
     def _best_split(
         self,
         matrix: list[list[float]],
@@ -114,7 +149,22 @@ class DecisionTreeClassifier:
         best_split = None
         class_count = len(parent_counts)
 
-        for feature in range(self.n_features_in_):
+        feature_count = self.max_features_
+        if feature_count == self.n_features_in_:
+            selected_features = list(range(self.n_features_in_))
+            remaining_features = []
+        else:
+            selected_features = sorted(
+                self._feature_rng.sample(range(self.n_features_in_), feature_count)
+            )
+            selected_set = set(selected_features)
+            remaining_features = [
+                feature for feature in range(self.n_features_in_)
+                if feature not in selected_set
+            ]
+
+        def evaluate_feature(feature: int) -> None:
+            nonlocal best_gain, best_split
             ordered = sorted(indices, key=lambda index: (matrix[index][feature], index))
             left_counts = [0] * class_count
             right_counts = list(parent_counts)
@@ -150,6 +200,17 @@ class DecisionTreeClassifier:
                         ordered[:left_size],
                         ordered[left_size:],
                     )
+
+        for feature in selected_features:
+            evaluate_feature(feature)
+
+        # If the sampled features cannot produce a valid split, inspect
+        # additional features until one can, matching the usual tree-search
+        # safeguard for nodes where sampled columns are constant.
+        while best_split is None and remaining_features:
+            offset = self._feature_rng.randrange(len(remaining_features))
+            feature = remaining_features.pop(offset)
+            evaluate_feature(feature)
         return best_split
 
     def fit(
@@ -172,6 +233,8 @@ class DecisionTreeClassifier:
 
         encoded = [class_indices[label] for label in target]
         self.n_features_in_ = len(matrix[0])
+        self.max_features_ = self._max_feature_count()
+        self._feature_rng = random.Random(self.random_state)
         self.classes_ = tuple(class_indices)
         self._nodes = [
             _Node(self._counts(list(range(len(matrix))), encoded, len(self.classes_)))
