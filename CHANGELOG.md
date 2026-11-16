@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added optional RandomForestClassifier out-of-bag probabilities, vote counts, accuracy estimates, and bootstrap-sample diagnostics, with tests and a runnable example.
+
 - Added a dependency-free RandomForestClassifier with bootstrap sampling, per-node random feature selection, class-aligned probabilities, and averaged feature importances.
 - Added configurable per-node feature sampling and reproducible random states to DecisionTreeClassifier.
 
