@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Raise OverflowError when shortest-path algorithms encounter accumulated costs outside the finite floating-point range.
+
 - Added optional RandomForestClassifier out-of-bag probabilities, vote counts, accuracy and coverage estimates, plus bootstrap-sample diagnostics, per-tree leaf assignments, log probabilities, hard-vote counts, and per-tree feature-importance variability with regression tests and runnable examples.
 
 - Added a dependency-free RandomForestClassifier with bootstrap sampling, per-node random feature selection, class-aligned probabilities, and averaged feature importances.
