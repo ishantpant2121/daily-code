@@ -112,7 +112,8 @@ negative cycles respectively. MST helpers support finite negative weights.
 - **statistics_utils.py** — mean, median, interpolated quantiles, sample/population
   variance, standard deviation, covariance, and Pearson correlation.
 
-- **decision_tree.py** — deterministic CART classification with Gini or entropy splits, leaf probabilities, depth and sample constraints, and feature importances.
+- **decision_tree.py** — CART classification with Gini or entropy splits, optional per-node random feature subsets, reproducible sampling, leaf probabilities, and feature importances.
+- **random_forest.py** — bootstrap-aggregated decision-tree classification with per-node random feature subsets, class-aligned probabilities, and averaged feature importances.
 - **imputation.py** — SimpleImputer with mean, median, most-frequent, and constant strategies, configurable missing sentinels, and empty-column handling.
 - **pipeline.py** — ordered transformer and estimator composition so preprocessing statistics are learned from training data only.
 - **model_selection.py** — reproducible cross-validation scoring with optional stratification and fresh estimator copies per fold.
@@ -183,6 +184,26 @@ then applied to that fold's validation rows. Built-in scorers are accuracy and
 balanced accuracy; a custom scorer receives the fitted estimator, validation
 features, and validation labels. These small-data helpers are educational and
 are not intended to replace optimized model-selection libraries.
+
+
+A random forest combines bootstrap samples with per-node feature sampling:
+
+~~~python
+from random_forest import RandomForestClassifier
+
+forest = RandomForestClassifier(
+    n_estimators=50,
+    max_features="sqrt",
+    random_state=42,
+).fit(x_train, y_train)
+print(forest.predict(x_test))
+print(forest.predict_proba(x_test))
+~~~
+
+The implementation is sequential, dependency-free, and intended for learning
+and small datasets. It does not currently calculate out-of-bag scores or run
+trees in parallel. See [the random forest guide](docs/random_forest.md) for
+bootstrap and feature-sampling details.
 
 ## Tests
 

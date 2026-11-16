@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added a dependency-free RandomForestClassifier with bootstrap sampling, per-node random feature selection, class-aligned probabilities, and averaged feature importances.
+- Added configurable per-node feature sampling and reproducible random states to DecisionTreeClassifier.
+
 - Prevented k-means++ from selecting zero-weight samples when the random threshold is zero, with a safe positive-weight fallback.
 
 - Standardized KMeans distance-overflow errors and handled initialization-weight summation overflow explicitly.

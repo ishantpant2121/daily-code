@@ -45,6 +45,7 @@ py-modules = [
     "pathfinding",
     "pipeline",
     "pca",
+    "random_forest",
     "preprocessing",
     "recursion",
     "regression_metrics",
