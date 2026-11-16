@@ -112,6 +112,24 @@ class RandomForestClassifierTests(unittest.TestCase):
         self.assertTrue(math.isnan(forest.oob_score_))
         self.assertTrue(all(math.isnan(value) for value in forest.oob_decision_function_[0]))
 
+    def test_predict_votes_counts_one_hard_vote_per_tree(self):
+        forest = RandomForestClassifier(
+            n_estimators=17, random_state=19
+        ).fit(self.features, self.labels)
+        votes = forest.predict_votes(self.features)
+        self.assertEqual(len(votes), len(self.features))
+        self.assertTrue(all(len(row) == len(forest.classes_) for row in votes))
+        self.assertTrue(all(sum(row) == 17 for row in votes))
+        self.assertEqual(votes, forest.predict_votes(self.features))
+
+    def test_feature_importance_standard_deviations_are_reproducible(self):
+        kwargs = {"n_estimators": 23, "max_features": 1, "random_state": 31}
+        first = RandomForestClassifier(**kwargs).fit(self.features, self.labels)
+        second = RandomForestClassifier(**kwargs).fit(self.features, self.labels)
+        self.assertEqual(first.feature_importances_std_, second.feature_importances_std_)
+        self.assertEqual(len(first.feature_importances_std_), 2)
+        self.assertTrue(all(math.isfinite(value) and value >= 0 for value in first.feature_importances_std_))
+
     def test_apply_returns_sample_major_leaf_indices(self):
         forest = RandomForestClassifier(
             n_estimators=7, random_state=13
@@ -177,6 +195,8 @@ class RandomForestClassifierTests(unittest.TestCase):
             forest.predict([[0]])
         with self.assertRaises(RuntimeError):
             forest.apply([[0]])
+        with self.assertRaises(RuntimeError):
+            forest.predict_votes([[0]])
         with self.assertRaises(ValueError):
             forest.fit([[0], [1]], [0])
         with self.assertRaises(ValueError):
@@ -185,6 +205,8 @@ class RandomForestClassifierTests(unittest.TestCase):
         forest.fit(self.features, self.labels)
         with self.assertRaises(ValueError):
             forest.predict([[1, 2, 3]])
+        with self.assertRaises(ValueError):
+            forest.predict_votes([[1, 2, 3]])
         with self.assertRaises(ValueError):
             forest.score([[0]], [0, 1])
 
