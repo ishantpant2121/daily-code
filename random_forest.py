@@ -201,6 +201,7 @@ class RandomForestClassifier:
                 covered += 1
             self.oob_counts_ = oob_counts
             self.oob_decision_function_ = decision
+            self.oob_coverage_ = covered / sample_count
             self.oob_score_ = correct / covered if covered else math.nan
         self._fitted = True
         return self
@@ -227,6 +228,32 @@ class RandomForestClassifier:
                 for row_index, row in enumerate(estimator_probabilities):
                     probabilities[row_index][forest_column] += row[tree_column] * contribution
         return probabilities
+
+    def apply(self, features: Iterable[Iterable[Real]]) -> list[list[int]]:
+        """Return each sample's terminal node index in every fitted tree.
+
+        The result is sample-major: one row per input sample and one column
+        per fitted estimator.
+        """
+        self._check_fitted()
+        matrix = _feature_matrix(features)
+        if len(matrix[0]) != self.n_features_in_:
+            raise ValueError("input feature count does not match fitted data")
+        per_tree = [estimator.apply(matrix) for estimator in self.estimators_]
+        return [
+            [tree_leaves[row_index] for tree_leaves in per_tree]
+            for row_index in range(len(matrix))
+        ]
+
+    def predict_log_proba(
+        self,
+        features: Iterable[Iterable[Real]],
+    ) -> list[list[float]]:
+        """Return natural-log class probabilities; zero probabilities map to -inf."""
+        return [
+            [math.log(value) if value > 0.0 else -math.inf for value in row]
+            for row in self.predict_proba(features)
+        ]
 
     def predict(self, features: Iterable[Iterable[Real]]) -> list[Any]:
         return [
