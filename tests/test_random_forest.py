@@ -1,5 +1,6 @@
 """Tests for bootstrap and random-feature tree ensembles."""
 
+import math
 import unittest
 
 from random_forest import RandomForestClassifier
@@ -62,6 +63,66 @@ class RandomForestClassifierTests(unittest.TestCase):
         self.assertTrue(all(value >= 0 for value in forest.feature_importances_))
         self.assertAlmostEqual(sum(forest.feature_importances_), 1.0)
         self.assertEqual(forest.feature_importances_[1], 0.0)
+
+    def test_oob_diagnostics_are_reproducible_and_use_only_held_out_trees(self):
+        kwargs = {"n_estimators": 80, "oob_score": True, "random_state": 23}
+        first = RandomForestClassifier(**kwargs).fit(self.features, self.labels)
+        second = RandomForestClassifier(**kwargs).fit(self.features, self.labels)
+
+        self.assertEqual(first.estimators_samples_, second.estimators_samples_)
+        self.assertEqual(first.oob_counts_, second.oob_counts_)
+        self.assertEqual(first.oob_decision_function_, second.oob_decision_function_)
+        self.assertEqual(len(first.estimators_samples_), 80)
+        self.assertTrue(all(len(sample) == len(self.features) for sample in first.estimators_samples_))
+
+        expected_counts = [
+            sum(index not in sample for sample in first.estimators_samples_)
+            for index in range(len(self.features))
+        ]
+        self.assertEqual(first.oob_counts_, expected_counts)
+        self.assertTrue(all(count > 0 for count in first.oob_counts_))
+        for row in first.oob_decision_function_:
+            self.assertAlmostEqual(sum(row), 1.0)
+        self.assertGreaterEqual(first.oob_score_, 0.0)
+        self.assertLessEqual(first.oob_score_, 1.0)
+
+    def test_oob_diagnostics_align_classes_missing_from_individual_trees(self):
+        features = [[0.0], [1.0], [2.0], [3.0]]
+        labels = ["a", "b", "c", "d"]
+        forest = RandomForestClassifier(
+            n_estimators=100, max_samples=2, oob_score=True,
+            max_features=1, random_state=7,
+        ).fit(features, labels)
+        self.assertEqual(len(forest.oob_decision_function_), 4)
+        self.assertEqual(forest.classes_, ("a", "b", "c", "d"))
+        for count, row in zip(forest.oob_counts_, forest.oob_decision_function_):
+            if count:
+                self.assertAlmostEqual(sum(row), 1.0)
+                self.assertEqual(len(row), 4)
+
+    def test_oob_rows_without_votes_are_nan_and_excluded_from_score(self):
+        forest = RandomForestClassifier(
+            n_estimators=3, oob_score=True, random_state=4
+        ).fit([[1.0]], ["only"])
+        self.assertEqual(forest.oob_counts_, [0])
+        self.assertTrue(math.isnan(forest.oob_score_))
+        self.assertTrue(all(math.isnan(value) for value in forest.oob_decision_function_[0]))
+
+    def test_oob_requires_bootstrap_and_boolean_option(self):
+        for kwargs in (
+            {"oob_score": 1},
+            {"oob_score": "yes"},
+            {"oob_score": True, "bootstrap": False},
+        ):
+            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                RandomForestClassifier(**kwargs)
+
+    def test_oob_attributes_are_absent_when_disabled(self):
+        forest = RandomForestClassifier(n_estimators=3, random_state=2)
+        forest.fit(self.features, self.labels)
+        self.assertFalse(hasattr(forest, "oob_score_"))
+        self.assertFalse(hasattr(forest, "oob_decision_function_"))
+        self.assertEqual(len(forest.estimators_samples_), 3)
 
     def test_rejects_invalid_configuration(self):
         for kwargs in (
