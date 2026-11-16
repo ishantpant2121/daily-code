@@ -24,7 +24,6 @@ def _validated_weight(value, *, allow_negative):
     return number
 
 
-
 def _add_finite_cost(current, increment, algorithm):
     """Add two finite costs without silently producing an infinite result."""
     total = current + increment
@@ -79,7 +78,7 @@ def dijkstra(graph, start):
         if distance != distances.get(node):
             continue
         for neighbor, weight in validated_graph.get(node, ()):
-            candidate = _add_finite_cost(distance, weight, "Shortest-path algorithm")
+            candidate = _add_finite_cost(distance, weight, "Dijkstra")
             if candidate < distances.get(neighbor, float("inf")):
                 distances[neighbor] = candidate
                 heappush(heap, (candidate, next(sequence), neighbor))
@@ -179,7 +178,7 @@ def dijkstra_path(graph, start, goal):
             break
 
         for neighbor, weight in validated_graph.get(node, ()):
-            candidate = _add_finite_cost(distance, weight, "Shortest-path algorithm")
+            candidate = _add_finite_cost(distance, weight, "Dijkstra path")
             if candidate < distances.get(neighbor, float("inf")):
                 distances[neighbor] = candidate
                 previous[neighbor] = node
@@ -223,7 +222,7 @@ def kruskal_mst(nodes, edges):
             continue
         if sets.union(positions[source], positions[destination]):
             selected.append((source, destination, weight))
-            total_weight += weight
+            total_weight = _add_finite_cost(total_weight, weight, "Kruskal MST")
             if len(selected) == len(nodes) - 1:
                 break
 
@@ -275,7 +274,7 @@ def prim_mst(graph, start=None):
             continue
         visited.add(destination)
         selected.append((source, destination, weight))
-        total_weight += weight
+        total_weight = _add_finite_cost(total_weight, weight, "Prim MST")
         for neighbor, edge_weight in adjacency.get(destination, ()):
             if neighbor not in visited:
                 heappush(
@@ -326,7 +325,9 @@ def bellman_ford(graph, start):
     for source, destination, weight in edges:
         if (
             source in distances
-            and _add_finite_cost(distances[source], weight, "Bellman-Ford") < distances.get(destination, float("inf"))
+            and _add_finite_cost(
+                distances[source], weight, "Bellman-Ford"
+            ) < distances.get(destination, float("inf"))
         ):
             raise ValueError("graph contains a reachable negative-weight cycle")
     return distances

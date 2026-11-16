@@ -2,7 +2,14 @@
 
 import unittest
 
-from graphs import bellman_ford, dijkstra, dijkstra_path, floyd_warshall, kruskal_mst, prim_mst
+from graphs import (
+    bellman_ford,
+    dijkstra,
+    dijkstra_path,
+    floyd_warshall,
+    kruskal_mst,
+    prim_mst,
+)
 
 
 class GraphWeightValidationTests(unittest.TestCase):
@@ -56,6 +63,20 @@ class GraphWeightValidationTests(unittest.TestCase):
         chain = {"s": [("a", -1e308)], "a": [("b", -1e308)], "b": []}
         with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
             bellman_ford(chain, "s")
+
+
+    def test_mst_algorithms_reject_unrepresentable_total_weights(self):
+        edges = [("a", "b", 1e308), ("b", "c", 1e308)]
+        with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
+            kruskal_mst(["a", "b", "c"], edges)
+
+        graph = {
+            "a": [("b", 1e308)],
+            "b": [("a", 1e308), ("c", 1e308)],
+            "c": [("b", 1e308)],
+        }
+        with self.assertRaisesRegex(OverflowError, "finite floating-point range"):
+            prim_mst(graph)
 
 
 if __name__ == "__main__":
