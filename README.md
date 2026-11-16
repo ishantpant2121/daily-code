@@ -113,7 +113,7 @@ negative cycles respectively. MST helpers support finite negative weights.
   variance, standard deviation, covariance, and Pearson correlation.
 
 - **decision_tree.py** — CART classification with Gini or entropy splits, optional per-node random feature subsets, reproducible sampling, leaf probabilities, and feature importances.
-- **random_forest.py** — bootstrap-aggregated decision-tree classification with per-node random feature subsets, class-aligned probabilities, averaged feature importances, and optional out-of-bag accuracy/probability diagnostics.
+- **random_forest.py** — bootstrap-aggregated decision-tree classification with per-node random feature subsets, class-aligned probabilities, averaged feature importances, optional out-of-bag accuracy/probability diagnostics, per-tree leaf assignments, and log probabilities.
 - **imputation.py** — SimpleImputer with mean, median, most-frequent, and constant strategies, configurable missing sentinels, and empty-column handling.
 - **pipeline.py** — ordered transformer and estimator composition so preprocessing statistics are learned from training data only.
 - **model_selection.py** — reproducible cross-validation scoring with optional stratification and fresh estimator copies per fold.
@@ -203,7 +203,9 @@ print(forest.predict_proba(x_test))
 The implementation is sequential, dependency-free, and intended for learning
 and small datasets. Set `oob_score=True` to estimate accuracy from trees that
 did not train on each row; rows without OOB votes are marked with NaN and
-excluded from the score. See [the random forest guide](docs/random_forest.md)
+excluded from the score. The forest also exposes per-tree leaf assignments
+through `apply` and natural-log class probabilities through
+`predict_log_proba`. See [the random forest guide](docs/random_forest.md)
 and [the OOB example](examples/random_forest_oob.py) for details.
 
 ## Tests
