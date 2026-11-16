@@ -13,11 +13,13 @@ model = RandomForestClassifier(
     max_features="sqrt",
     bootstrap=True,
     random_state=42,
+    oob_score=True,
 )
 model.fit(x_train, y_train)
 
 predictions = model.predict(x_test)
 probabilities = model.predict_proba(x_test)
+print("out-of-bag accuracy:", model.oob_score_)
 ```
 
 ## Sampling behavior
@@ -47,11 +49,43 @@ training labels.
 - `n_features_in_`: number of input columns.
 - `n_samples_fit_`: original training sample count.
 - `max_samples_`: rows drawn for each tree.
+- `estimators_samples_`: the row indices drawn for each fitted tree, including
+  repeated indices when bootstrap sampling is enabled.
+- `oob_score_`: accuracy computed from out-of-bag predictions, available only
+  when `oob_score=True`.
+- `oob_decision_function_`: class-aligned mean probabilities from trees that
+  did not train on each row. A row with no out-of-bag votes contains NaN values.
+- `oob_counts_`: number of trees that supplied an out-of-bag prediction for
+  each training row.
+
+## Out-of-bag evaluation
+
+Set `oob_score=True` to evaluate each training row using only trees whose
+bootstrap samples omitted that row. This gives a useful internal generalization
+estimate without a separate validation split. It requires `bootstrap=True`.
+The score is ordinary accuracy over rows that received at least one out-of-bag
+vote. Rows with no votes are excluded from the score and represented by NaN
+probabilities; if no row receives a vote, `oob_score_` is NaN. Increase
+`n_estimators` when coverage is incomplete. Out-of-bag evaluation is not a
+replacement for a final untouched test set.
+
+```python
+forest = RandomForestClassifier(
+    n_estimators=200,
+    max_features="sqrt",
+    oob_score=True,
+    random_state=42,
+).fit(x_train, y_train)
+
+print(forest.oob_score_)
+print(forest.oob_counts_)
+```
 
 ## Scope and limitations
 
-Trees are fitted sequentially. Out-of-bag scoring, parallel fitting, sample
-weights, class weights, and warm-start fitting are not implemented. The model
+Trees are fitted sequentially. Parallel fitting, sample weights, class weights,
+and warm-start fitting are not implemented. Out-of-bag scoring uses accuracy;
+custom OOB metrics are not currently supported. The model
 is intended for learning and small datasets, not as a replacement for an
 optimized production library.
 
