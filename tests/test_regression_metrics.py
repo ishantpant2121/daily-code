@@ -69,6 +69,20 @@ class RegressionMetricsTests(unittest.TestCase):
             explained_variance_score([4, 4], [3, 5], force_finite=False), -math.inf
         )
 
+    def test_explained_variance_scales_extreme_values_and_constant_offsets(self):
+        self.assertAlmostEqual(
+            explained_variance_score([1e308, -1e308], [5e307, -5e307]), 0.75
+        )
+        self.assertEqual(
+            explained_variance_score([1e308, -1e308], [5e307, -1.5e308]), 1.0
+        )
+        self.assertEqual(
+            explained_variance_score([1e308, 1e308], [-1e308, -1e308]), 1.0
+        )
+        self.assertEqual(
+            explained_variance_score([1e-308, 2e-308], [1e308, 1e308]), 0.0
+        )
+
     def test_squared_log_error_metrics(self):
         actual = [3, 5, 2.5, 7]
         predicted = [2.5, 5, 4, 8]

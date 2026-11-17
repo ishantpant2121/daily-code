@@ -205,30 +205,80 @@ def explained_variance_score(
 ) -> float:
     """Return 1 - Var(y_true - y_pred) / Var(y_true), using population variance.
 
-    Unlike R-squared, a constant prediction offset does not reduce this score:
-    explained variance measures residual spread rather than residual bias.
-    For constant targets, force_finite returns 1.0 when residual variance is
-    zero and 0.0 otherwise; disabling it returns NaN or negative infinity.
+    Targets and predictions are centered separately before their deviations
+    are combined. This avoids losing small target variation behind a large
+    constant prediction offset. Scale-normalized sums avoid intermediate
+    overflow. For constant targets, force_finite returns 1.0 when predictions
+    are constant and 0.0 otherwise; disabling it returns NaN or negative
+    infinity.
     """
     if type(force_finite) is not bool:
         raise ValueError("force_finite must be a boolean")
     actual, predicted = _paired_values(y_true, y_pred)
-    residuals = [target - estimate for target, estimate in zip(actual, predicted)]
-    if any(not math.isfinite(value) for value in residuals):
-        raise ValueError("prediction error exceeds finite float range")
-    actual_mean = math.fsum(actual) / len(actual)
-    residual_mean = math.fsum(residuals) / len(residuals)
-    actual_variance = math.fsum(
-        (value - actual_mean) ** 2 for value in actual
-    ) / len(actual)
-    residual_variance = math.fsum(
-        (value - residual_mean) ** 2 for value in residuals
-    ) / len(residuals)
-    if actual_variance == 0:
+
+    actual_scale = max(abs(value) for value in actual)
+    if actual_scale == 0.0:
+        actual_centered = [0.0] * len(actual)
+        actual_variance = 0.0
+    else:
+        normalized_actual = [value / actual_scale for value in actual]
+        actual_mean = math.fsum(normalized_actual) / len(normalized_actual)
+        actual_centered = [value - actual_mean for value in normalized_actual]
+        actual_variance = math.fsum(value * value for value in actual_centered) / len(actual)
+
+    predicted_scale = max(abs(value) for value in predicted)
+    if predicted_scale == 0.0:
+        predicted_centered = [0.0] * len(predicted)
+    else:
+        normalized_predicted = [value / predicted_scale for value in predicted]
+        predicted_mean = math.fsum(normalized_predicted) / len(normalized_predicted)
+        predicted_centered = [value - predicted_mean for value in normalized_predicted]
+
+    if actual_variance == 0.0:
+        predictions_are_constant = not any(value != 0.0 for value in predicted_centered)
         if force_finite:
-            return 1.0 if residual_variance == 0 else 0.0
-        return math.nan if residual_variance == 0 else -math.inf
-    return 1.0 - residual_variance / actual_variance
+            return 1.0 if predictions_are_constant else 0.0
+        return math.nan if predictions_are_constant else -math.inf
+
+    if predicted_scale == 0.0:
+        prediction_scale_ratio = 0.0
+    else:
+        prediction_scale_ratio = predicted_scale / actual_scale
+
+    if not math.isfinite(prediction_scale_ratio):
+        if not any(value != 0.0 for value in predicted_centered):
+            variance_ratio = 1.0
+        else:
+            variance_ratio = math.inf
+    else:
+        scaled_predicted_centered = [
+            prediction_scale_ratio * value for value in predicted_centered
+        ]
+        if any(not math.isfinite(value) for value in scaled_predicted_centered):
+            variance_ratio = math.inf
+        else:
+            component_scale = max(
+                max(abs(value) for value in actual_centered),
+                max(abs(value) for value in scaled_predicted_centered),
+            )
+            if component_scale == 0.0:
+                variance_ratio = 0.0
+            else:
+                residual_centered = [
+                    (actual_value / component_scale)
+                    - (predicted_value / component_scale)
+                    for actual_value, predicted_value in zip(
+                        actual_centered, scaled_predicted_centered
+                    )
+                ]
+                residual_variance = (
+                    math.fsum(value * value for value in residual_centered)
+                    / len(residual_centered)
+                )
+                variance_ratio = _scaled_square_ratio(
+                    component_scale, 1.0, residual_variance, actual_variance
+                )
+    return 1.0 - variance_ratio
 
 
 def mean_squared_log_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
