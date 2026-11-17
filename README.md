@@ -117,11 +117,11 @@ unreachable or returned as infinity.
 
 - **decision_tree.py** — CART classification with Gini or entropy splits, optional per-node random feature subsets, reproducible sampling, leaf probabilities, and feature importances.
 - **random_forest.py** — bootstrap-aggregated decision-tree classification with per-node random feature subsets, class-aligned probabilities, averaged feature importances, optional out-of-bag accuracy/probability diagnostics, per-tree leaf assignments, log probabilities, hard-vote counts, and per-tree feature-importance variability.
-- **decision_tree_regressor.py** and **random_forest_regressor.py** — squared-error regression trees and bootstrap-aggregated regression forests with feature importances and optional out-of-bag R-squared diagnostics.
+- **decision_tree_regressor.py** and **random_forest_regressor.py** — squared-error regression trees and bootstrap-aggregated regression forests with feature importances, optional out-of-bag R-squared diagnostics, and per-row tree prediction quantiles/spread.
 - **gradient_boosting_regressor.py** — stage-wise squared-error boosting with shallow regression trees, reproducible stochastic subsampling, staged predictions, and feature importances.
 - **imputation.py** — SimpleImputer with mean, median, most-frequent, and constant strategies, configurable missing sentinels, and empty-column handling.
 - **pipeline.py** — ordered transformer and estimator composition so preprocessing statistics are learned from training data only.
-- **model_selection.py** — reproducible cross-validation scoring with optional stratification and fresh estimator copies per fold.
+- **model_selection.py** — reproducible cross-validation scoring with optional stratification, fresh estimator copies per fold, classification scorers, and R-squared/negative regression-error scorers.
 
 Example classification workflow:
 
