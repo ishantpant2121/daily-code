@@ -51,6 +51,12 @@ class RegressionMetricsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             mean_absolute_error([1e308], [-1e308])
 
+    def test_squared_errors_scale_before_aggregation(self):
+        self.assertEqual(mean_squared_error([1e154, -1e154], [0.0, 0.0]), 1e308)
+        self.assertEqual(root_mean_squared_error([1e-200], [0.0]), 1e-200)
+        with self.assertRaises(ValueError):
+            mean_squared_error([1e308], [0.0])
+
     def test_explained_variance_measures_residual_spread(self):
         self.assertAlmostEqual(explained_variance_score([1, 2, 3], [4, 5, 6]), 1.0)
         self.assertAlmostEqual(explained_variance_score([1, 2, 3], [1, 2, 4]), 2 / 3)

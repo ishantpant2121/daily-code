@@ -55,15 +55,46 @@ def mean_absolute_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float
     )
 
 
+def _scaled_mean_square(values: list[float], message: str) -> float:
+    """Return a mean square after normalizing values before squaring."""
+    scale = max(abs(value) for value in values)
+    if scale == 0.0:
+        return 0.0
+    normalized_mean_square = math.fsum((value / scale) ** 2 for value in values) / len(values)
+    result = scale * (scale * normalized_mean_square)
+    if not math.isfinite(result):
+        raise ValueError(message)
+    return result
+
+
+def _scaled_root_mean_square(values: list[float], message: str) -> float:
+    """Return an RMS directly so a representable root is not lost to square underflow."""
+    scale = max(abs(value) for value in values)
+    if scale == 0.0:
+        return 0.0
+    normalized_mean_square = math.fsum((value / scale) ** 2 for value in values) / len(values)
+    result = scale * math.sqrt(normalized_mean_square)
+    if not math.isfinite(result):
+        raise ValueError(message)
+    return result
+
+
 def mean_squared_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
     """Return the mean squared prediction error."""
     actual, predicted = _paired_values(y_true, y_pred)
-    return math.fsum((a - p) ** 2 for a, p in zip(actual, predicted)) / len(actual)
+    return _scaled_mean_square(
+        _absolute_errors(actual, predicted),
+        "mean squared error exceeds finite floating-point range",
+    )
 
 
 def root_mean_squared_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
     """Return the square root of mean squared error."""
-    return math.sqrt(mean_squared_error(y_true, y_pred))
+    actual, predicted = _paired_values(y_true, y_pred)
+    return _scaled_root_mean_square(
+        _absolute_errors(actual, predicted),
+        "root mean squared error exceeds finite floating-point range",
+    )
 
 
 def r2_score(
