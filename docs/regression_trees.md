@@ -85,6 +85,13 @@ n_samples_fit_, and max_samples_. The apply method returns a sample-major
 matrix of leaf indices, with one column per tree. oob_counts_ and
 oob_coverage_ describe OOB support when OOB scoring is enabled.
 
+predict_quantiles returns requested empirical quantiles across individual
+tree predictions for each row. predict_std returns the population standard
+deviation across tree predictions. These diagnostics describe ensemble
+disagreement; they are not calibrated predictive intervals or guaranteed
+coverage bounds. They can be useful for identifying rows where fitted trees
+disagree, but should not be presented as formal uncertainty estimates.
+
 ## Limitations
 
 Both estimators accept finite real-valued features and targets. Missing-value
