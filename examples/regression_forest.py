@@ -2,19 +2,20 @@
 
 from random_forest_regressor import RandomForestRegressor
 
-features = [[float(index), float(index % 4)] for index in range(24)]
+features = [[float(index)] for index in range(36)]
 targets = [
-    1.8 * row[0] - 0.7 * row[1] + (row[0] % 5) * 0.4
-    for row in features
+    0.5 * index + (4.0 if (index // 8) % 2 else 0.0)
+    for index in range(36)
 ]
 
-x_train, y_train = features[:18], targets[:18]
-x_test, y_test = features[18:], targets[18:]
+# Interleave held-out rows so the test set stays inside the training range.
+x_train, y_train = features[::2], targets[::2]
+x_test, y_test = features[1::2], targets[1::2]
 
 forest = RandomForestRegressor(
     n_estimators=100,
     max_depth=5,
-    max_features="sqrt",
+    max_features=1.0,
     oob_score=True,
     random_state=42,
 ).fit(x_train, y_train)
