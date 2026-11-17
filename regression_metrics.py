@@ -2,6 +2,7 @@
 
 from itertools import zip_longest
 import math
+import sys
 from numbers import Real
 from typing import Iterable
 
@@ -34,21 +35,89 @@ def _paired_values(y_true: Iterable[Real], y_pred: Iterable[Real]) -> tuple[list
     return actual_values, predicted_values
 
 
+def _stable_mean(values: list[float], message: str) -> float:
+    """Return a mean without overflowing an otherwise representable average."""
+    scale = max(abs(value) for value in values)
+    if scale == 0.0:
+        return 0.0
+    normalized_mean = math.fsum(value / scale for value in values) / len(values)
+    result = scale * normalized_mean
+    if not math.isfinite(result):
+        raise ValueError(message)
+    return result
+
+
 def mean_absolute_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
     """Return the mean absolute prediction error."""
     actual, predicted = _paired_values(y_true, y_pred)
-    return math.fsum(abs(a - p) for a, p in zip(actual, predicted)) / len(actual)
+    return _stable_mean(
+        _absolute_errors(actual, predicted),
+        "mean absolute error exceeds finite floating-point range",
+    )
+
+
+def _scaled_mean_square(values: list[float], message: str) -> float:
+    """Return a mean square after normalizing values before squaring."""
+    scale = max(abs(value) for value in values)
+    if scale == 0.0:
+        return 0.0
+    normalized_mean_square = math.fsum((value / scale) ** 2 for value in values) / len(values)
+    result = scale * (scale * normalized_mean_square)
+    if not math.isfinite(result):
+        raise ValueError(message)
+    return result
+
+
+def _scaled_root_mean_square(values: list[float], message: str) -> float:
+    """Return an RMS directly so a representable root is not lost to square underflow."""
+    scale = max(abs(value) for value in values)
+    if scale == 0.0:
+        return 0.0
+    normalized_mean_square = math.fsum((value / scale) ** 2 for value in values) / len(values)
+    result = scale * math.sqrt(normalized_mean_square)
+    if not math.isfinite(result):
+        raise ValueError(message)
+    return result
 
 
 def mean_squared_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
     """Return the mean squared prediction error."""
     actual, predicted = _paired_values(y_true, y_pred)
-    return math.fsum((a - p) ** 2 for a, p in zip(actual, predicted)) / len(actual)
+    return _scaled_mean_square(
+        _absolute_errors(actual, predicted),
+        "mean squared error exceeds finite floating-point range",
+    )
 
 
 def root_mean_squared_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
     """Return the square root of mean squared error."""
-    return math.sqrt(mean_squared_error(y_true, y_pred))
+    actual, predicted = _paired_values(y_true, y_pred)
+    return _scaled_root_mean_square(
+        _absolute_errors(actual, predicted),
+        "root mean squared error exceeds finite floating-point range",
+    )
+
+
+def _scaled_square_ratio(
+    numerator_scale: float,
+    denominator_scale: float,
+    numerator: float,
+    denominator: float,
+) -> float:
+    """Return a ratio of scaled sums of squares without squaring large scales."""
+    if numerator == 0.0:
+        return 0.0
+    if denominator == 0.0:
+        return math.inf
+    normalized_ratio = numerator / denominator
+    scale_ratio = numerator_scale / denominator_scale
+    if not math.isfinite(normalized_ratio) or not math.isfinite(scale_ratio):
+        return math.inf
+    root = scale_ratio * math.sqrt(normalized_ratio)
+    if not math.isfinite(root) or root > math.sqrt(sys.float_info.max):
+        return math.inf
+    result = root * root
+    return result if math.isfinite(result) else math.inf
 
 
 def r2_score(
@@ -59,7 +128,8 @@ def r2_score(
 ) -> float:
     """Return R-squared; at least two samples are required.
 
-    For constant targets, the finite policy returns 1.0 for perfect
+    Variance and residual sums are scale-normalized to avoid intermediate
+    overflow. For constant targets, the finite policy returns 1.0 for perfect
     predictions and 0.0 otherwise. Disable it to receive NaN or -infinity.
     """
     if type(force_finite) is not bool:
@@ -67,14 +137,37 @@ def r2_score(
     actual, predicted = _paired_values(y_true, y_pred)
     if len(actual) < 2:
         raise ValueError("r2_score requires at least two samples")
-    average = math.fsum(actual) / len(actual)
-    residual_sum = math.fsum((a - p) ** 2 for a, p in zip(actual, predicted))
-    total_sum = math.fsum((a - average) ** 2 for a in actual)
-    if total_sum == 0:
+
+    actual_scale = max(abs(value) for value in actual)
+    if actual_scale == 0.0:
+        perfect = all(a == p for a, p in zip(actual, predicted))
         if force_finite:
-            return 1.0 if residual_sum == 0 else 0.0
-        return math.nan if residual_sum == 0 else -math.inf
-    return 1.0 - residual_sum / total_sum
+            return 1.0 if perfect else 0.0
+        return math.nan if perfect else -math.inf
+
+    normalized_actual = [value / actual_scale for value in actual]
+    average = math.fsum(normalized_actual) / len(normalized_actual)
+    total_sum = math.fsum((value - average) ** 2 for value in normalized_actual)
+    if total_sum == 0.0:
+        perfect = all(a == p for a, p in zip(actual, predicted))
+        if force_finite:
+            return 1.0 if perfect else 0.0
+        return math.nan if perfect else -math.inf
+
+    residual_scale = max(
+        max(abs(a), abs(p)) for a, p in zip(actual, predicted)
+    )
+    if residual_scale == 0.0:
+        residual_sum = 0.0
+    else:
+        residual_sum = math.fsum(
+            (a / residual_scale - p / residual_scale) ** 2
+            for a, p in zip(actual, predicted)
+        )
+    ratio = _scaled_square_ratio(
+        residual_scale, actual_scale, residual_sum, total_sum
+    )
+    return 1.0 - ratio
 
 
 def _absolute_errors(actual: list[float], predicted: list[float]) -> list[float]:
@@ -112,30 +205,80 @@ def explained_variance_score(
 ) -> float:
     """Return 1 - Var(y_true - y_pred) / Var(y_true), using population variance.
 
-    Unlike R-squared, a constant prediction offset does not reduce this score:
-    explained variance measures residual spread rather than residual bias.
-    For constant targets, force_finite returns 1.0 when residual variance is
-    zero and 0.0 otherwise; disabling it returns NaN or negative infinity.
+    Targets and predictions are centered separately before their deviations
+    are combined. This avoids losing small target variation behind a large
+    constant prediction offset. Scale-normalized sums avoid intermediate
+    overflow. For constant targets, force_finite returns 1.0 when predictions
+    are constant and 0.0 otherwise; disabling it returns NaN or negative
+    infinity.
     """
     if type(force_finite) is not bool:
         raise ValueError("force_finite must be a boolean")
     actual, predicted = _paired_values(y_true, y_pred)
-    residuals = [target - estimate for target, estimate in zip(actual, predicted)]
-    if any(not math.isfinite(value) for value in residuals):
-        raise ValueError("prediction error exceeds finite float range")
-    actual_mean = math.fsum(actual) / len(actual)
-    residual_mean = math.fsum(residuals) / len(residuals)
-    actual_variance = math.fsum(
-        (value - actual_mean) ** 2 for value in actual
-    ) / len(actual)
-    residual_variance = math.fsum(
-        (value - residual_mean) ** 2 for value in residuals
-    ) / len(residuals)
-    if actual_variance == 0:
+
+    actual_scale = max(abs(value) for value in actual)
+    if actual_scale == 0.0:
+        actual_centered = [0.0] * len(actual)
+        actual_variance = 0.0
+    else:
+        normalized_actual = [value / actual_scale for value in actual]
+        actual_mean = math.fsum(normalized_actual) / len(normalized_actual)
+        actual_centered = [value - actual_mean for value in normalized_actual]
+        actual_variance = math.fsum(value * value for value in actual_centered) / len(actual)
+
+    predicted_scale = max(abs(value) for value in predicted)
+    if predicted_scale == 0.0:
+        predicted_centered = [0.0] * len(predicted)
+    else:
+        normalized_predicted = [value / predicted_scale for value in predicted]
+        predicted_mean = math.fsum(normalized_predicted) / len(normalized_predicted)
+        predicted_centered = [value - predicted_mean for value in normalized_predicted]
+
+    if actual_variance == 0.0:
+        predictions_are_constant = not any(value != 0.0 for value in predicted_centered)
         if force_finite:
-            return 1.0 if residual_variance == 0 else 0.0
-        return math.nan if residual_variance == 0 else -math.inf
-    return 1.0 - residual_variance / actual_variance
+            return 1.0 if predictions_are_constant else 0.0
+        return math.nan if predictions_are_constant else -math.inf
+
+    if predicted_scale == 0.0:
+        prediction_scale_ratio = 0.0
+    else:
+        prediction_scale_ratio = predicted_scale / actual_scale
+
+    if not math.isfinite(prediction_scale_ratio):
+        if not any(value != 0.0 for value in predicted_centered):
+            variance_ratio = 1.0
+        else:
+            variance_ratio = math.inf
+    else:
+        scaled_predicted_centered = [
+            prediction_scale_ratio * value for value in predicted_centered
+        ]
+        if any(not math.isfinite(value) for value in scaled_predicted_centered):
+            variance_ratio = math.inf
+        else:
+            component_scale = max(
+                max(abs(value) for value in actual_centered),
+                max(abs(value) for value in scaled_predicted_centered),
+            )
+            if component_scale == 0.0:
+                variance_ratio = 0.0
+            else:
+                residual_centered = [
+                    (actual_value / component_scale)
+                    - (predicted_value / component_scale)
+                    for actual_value, predicted_value in zip(
+                        actual_centered, scaled_predicted_centered
+                    )
+                ]
+                residual_variance = (
+                    math.fsum(value * value for value in residual_centered)
+                    / len(residual_centered)
+                )
+                variance_ratio = _scaled_square_ratio(
+                    component_scale, 1.0, residual_variance, actual_variance
+                )
+    return 1.0 - variance_ratio
 
 
 def mean_squared_log_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Hardened regression metrics against intermediate overflow and underflow for large or tiny finite values; added focused numerical regression coverage and documentation.
+
 - Added built-in R-squared and negative regression-error scorers to cross-validation and hyperparameter search.
 - Added random-forest regression prediction quantiles and tree-to-tree standard-deviation diagnostics, with explicit documentation that these are disagreement measures rather than calibrated intervals.
 

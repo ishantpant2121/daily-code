@@ -46,6 +46,17 @@ class RegressionMetricsTests(unittest.TestCase):
             1.5,
         )
 
+    def test_mean_absolute_error_scales_large_finite_values(self):
+        self.assertEqual(mean_absolute_error([1e308, 1e308], [0.0, 0.0]), 1e308)
+        with self.assertRaises(ValueError):
+            mean_absolute_error([1e308], [-1e308])
+
+    def test_squared_errors_scale_before_aggregation(self):
+        self.assertEqual(mean_squared_error([1e154, -1e154], [0.0, 0.0]), 1e308)
+        self.assertEqual(root_mean_squared_error([1e-200], [0.0]), 1e-200)
+        with self.assertRaises(ValueError):
+            mean_squared_error([1e308], [0.0])
+
     def test_explained_variance_measures_residual_spread(self):
         self.assertAlmostEqual(explained_variance_score([1, 2, 3], [4, 5, 6]), 1.0)
         self.assertAlmostEqual(explained_variance_score([1, 2, 3], [1, 2, 4]), 2 / 3)
@@ -56,6 +67,20 @@ class RegressionMetricsTests(unittest.TestCase):
         )
         self.assertEqual(
             explained_variance_score([4, 4], [3, 5], force_finite=False), -math.inf
+        )
+
+    def test_explained_variance_scales_extreme_values_and_constant_offsets(self):
+        self.assertAlmostEqual(
+            explained_variance_score([1e308, -1e308], [5e307, -5e307]), 0.75
+        )
+        self.assertEqual(
+            explained_variance_score([1e308, -1e308], [5e307, -1.5e308]), 1.0
+        )
+        self.assertEqual(
+            explained_variance_score([1e308, 1e308], [-1e308, -1e308]), 1.0
+        )
+        self.assertEqual(
+            explained_variance_score([1e-308, 2e-308], [1e308, 1e308]), 0.0
         )
 
     def test_squared_log_error_metrics(self):
@@ -72,6 +97,17 @@ class RegressionMetricsTests(unittest.TestCase):
 
     def test_r2_can_be_negative(self):
         self.assertLess(r2_score([1, 2, 3], [5, 5, 5]), 0)
+
+    def test_r2_scales_extreme_finite_targets_and_residuals(self):
+        self.assertEqual(r2_score([1e308, -1e308], [1e308, -1e308]), 1.0)
+        self.assertAlmostEqual(
+            r2_score([1e308, -1e308], [5e307, -5e307]), 0.75
+        )
+        self.assertEqual(r2_score([1e308, 1e308], [-1e308, -1e308]), 0.0)
+        self.assertEqual(
+            r2_score([1e308, 1e308], [-1e308, -1e308], force_finite=False),
+            -math.inf,
+        )
 
     def test_constant_targets_follow_finite_policy(self):
         self.assertEqual(r2_score([4, 4], [4, 4]), 1.0)
