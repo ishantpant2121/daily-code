@@ -2,6 +2,7 @@
 
 from itertools import zip_longest
 import math
+import sys
 from numbers import Real
 from typing import Iterable
 
@@ -97,6 +98,28 @@ def root_mean_squared_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> f
     )
 
 
+def _scaled_square_ratio(
+    numerator_scale: float,
+    denominator_scale: float,
+    numerator: float,
+    denominator: float,
+) -> float:
+    """Return a ratio of scaled sums of squares without squaring large scales."""
+    if numerator == 0.0:
+        return 0.0
+    if denominator == 0.0:
+        return math.inf
+    normalized_ratio = numerator / denominator
+    scale_ratio = numerator_scale / denominator_scale
+    if not math.isfinite(normalized_ratio) or not math.isfinite(scale_ratio):
+        return math.inf
+    root = scale_ratio * math.sqrt(normalized_ratio)
+    if not math.isfinite(root) or root > math.sqrt(sys.float_info.max):
+        return math.inf
+    result = root * root
+    return result if math.isfinite(result) else math.inf
+
+
 def r2_score(
     y_true: Iterable[Real],
     y_pred: Iterable[Real],
@@ -105,7 +128,8 @@ def r2_score(
 ) -> float:
     """Return R-squared; at least two samples are required.
 
-    For constant targets, the finite policy returns 1.0 for perfect
+    Variance and residual sums are scale-normalized to avoid intermediate
+    overflow. For constant targets, the finite policy returns 1.0 for perfect
     predictions and 0.0 otherwise. Disable it to receive NaN or -infinity.
     """
     if type(force_finite) is not bool:
@@ -113,14 +137,37 @@ def r2_score(
     actual, predicted = _paired_values(y_true, y_pred)
     if len(actual) < 2:
         raise ValueError("r2_score requires at least two samples")
-    average = math.fsum(actual) / len(actual)
-    residual_sum = math.fsum((a - p) ** 2 for a, p in zip(actual, predicted))
-    total_sum = math.fsum((a - average) ** 2 for a in actual)
-    if total_sum == 0:
+
+    actual_scale = max(abs(value) for value in actual)
+    if actual_scale == 0.0:
+        perfect = all(a == p for a, p in zip(actual, predicted))
         if force_finite:
-            return 1.0 if residual_sum == 0 else 0.0
-        return math.nan if residual_sum == 0 else -math.inf
-    return 1.0 - residual_sum / total_sum
+            return 1.0 if perfect else 0.0
+        return math.nan if perfect else -math.inf
+
+    normalized_actual = [value / actual_scale for value in actual]
+    average = math.fsum(normalized_actual) / len(normalized_actual)
+    total_sum = math.fsum((value - average) ** 2 for value in normalized_actual)
+    if total_sum == 0.0:
+        perfect = all(a == p for a, p in zip(actual, predicted))
+        if force_finite:
+            return 1.0 if perfect else 0.0
+        return math.nan if perfect else -math.inf
+
+    residual_scale = max(
+        max(abs(a), abs(p)) for a, p in zip(actual, predicted)
+    )
+    if residual_scale == 0.0:
+        residual_sum = 0.0
+    else:
+        residual_sum = math.fsum(
+            (a / residual_scale - p / residual_scale) ** 2
+            for a, p in zip(actual, predicted)
+        )
+    ratio = _scaled_square_ratio(
+        residual_scale, actual_scale, residual_sum, total_sum
+    )
+    return 1.0 - ratio
 
 
 def _absolute_errors(actual: list[float], predicted: list[float]) -> list[float]:

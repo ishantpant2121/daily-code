@@ -84,6 +84,17 @@ class RegressionMetricsTests(unittest.TestCase):
     def test_r2_can_be_negative(self):
         self.assertLess(r2_score([1, 2, 3], [5, 5, 5]), 0)
 
+    def test_r2_scales_extreme_finite_targets_and_residuals(self):
+        self.assertEqual(r2_score([1e308, -1e308], [1e308, -1e308]), 1.0)
+        self.assertAlmostEqual(
+            r2_score([1e308, -1e308], [5e307, -5e307]), 0.75
+        )
+        self.assertEqual(r2_score([1e308, 1e308], [-1e308, -1e308]), 0.0)
+        self.assertEqual(
+            r2_score([1e308, 1e308], [-1e308, -1e308], force_finite=False),
+            -math.inf,
+        )
+
     def test_constant_targets_follow_finite_policy(self):
         self.assertEqual(r2_score([4, 4], [4, 4]), 1.0)
         self.assertEqual(r2_score([4, 4], [3, 5]), 0.0)
