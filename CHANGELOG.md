@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added built-in R-squared and negative regression-error scorers to cross-validation and hyperparameter search.
+- Added random-forest regression prediction quantiles and tree-to-tree standard-deviation diagnostics, with explicit documentation that these are disagreement measures rather than calibrated intervals.
+
 - Added a dependency-free squared-error GradientBoostingRegressor with staged predictions, reproducible stochastic subsampling, feature importances, tests, documentation, and an executable example.
 
 - Added dependency-free DecisionTreeRegressor and RandomForestRegressor implementations with squared-error splits, reproducible bootstrap sampling, feature importances, out-of-bag R-squared diagnostics, tests, documentation, and a runnable example.
