@@ -85,6 +85,13 @@ n_samples_fit_, and max_samples_. The apply method returns a sample-major
 matrix of leaf indices, with one column per tree. oob_counts_ and
 oob_coverage_ describe OOB support when OOB scoring is enabled.
 
+predict_quantiles returns requested empirical quantiles across individual
+tree predictions for each row. predict_std returns the population standard
+deviation across tree predictions. These diagnostics describe ensemble
+disagreement; they are not calibrated predictive intervals or guaranteed
+coverage bounds. They can be useful for identifying rows where fitted trees
+disagree, but should not be presented as formal uncertainty estimates.
+
 ## Limitations
 
 Both estimators accept finite real-valued features and targets. Missing-value
@@ -98,3 +105,38 @@ forest regressor, see the
 [DecisionTreeRegressor documentation](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeRegressor.html)
 and
 [RandomForestRegressor documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html).
+
+## Gradient boosting
+
+~~~python
+from gradient_boosting_regressor import GradientBoostingRegressor
+
+model = GradientBoostingRegressor(
+    n_estimators=100,
+    learning_rate=0.1,
+    subsample=0.8,
+    max_depth=2,
+    random_state=42,
+).fit(x_train, y_train)
+predictions = model.predict(x_test)
+print("R-squared:", model.score(x_test, y_test))
+print("feature importance:", model.feature_importances_)
+~~~
+
+The model starts with the mean training target, then fits one regression tree
+per stage to the current residuals. Each tree contribution is multiplied by
+learning_rate before it is added to the running prediction. The implementation
+uses squared-error loss only. Targets are scaled internally to keep residual
+calculation stable for large finite values.
+
+Set subsample below 1 to fit each stage on a reproducible sample drawn without
+replacement. The fitted estimator exposes estimators_, estimators_samples_,
+init_prediction_, feature_importances_, n_features_in_, and n_samples_fit_.
+staged_predict yields predictions after each stage, which can be used to
+inspect validation performance as the ensemble grows. apply returns a
+sample-major matrix with one terminal-node index per stage.
+
+This educational implementation does not include alternative losses,
+sample weights, early stopping, warm starts, parallel fitting, or missing-value
+handling. Fit any imputation or scaling steps only on training data, preferably
+inside a pipeline.

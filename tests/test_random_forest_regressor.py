@@ -123,5 +123,48 @@ class RandomForestRegressorTests(unittest.TestCase):
             model.predict([[1]])
 
 
+    def test_tree_prediction_quantiles_and_spread_are_reproducible(self):
+        kwargs = {"n_estimators": 41, "max_depth": 3, "random_state": 29}
+        first = RandomForestRegressor(**kwargs).fit(self.features, self.targets)
+        second = RandomForestRegressor(**kwargs).fit(self.features, self.targets)
+        levels = (0.0, 0.25, 0.5, 0.75, 1.0)
+        quantiles = first.predict_quantiles([[2.0], [9.0]], levels)
+        self.assertEqual(quantiles, second.predict_quantiles([[2.0], [9.0]], levels))
+        self.assertEqual(len(quantiles), 2)
+        self.assertTrue(all(len(row) == len(levels) for row in quantiles))
+        self.assertTrue(all(row == sorted(row) for row in quantiles))
+        spread = first.predict_std([[2.0], [9.0]])
+        self.assertEqual(spread, second.predict_std([[2.0], [9.0]]))
+        self.assertEqual(len(spread), 2)
+        self.assertTrue(all(math.isfinite(value) and value >= 0.0 for value in spread))
+
+    def test_bootstrap_free_quantiles_match_predictions_and_spread_is_zero(self):
+        model = RandomForestRegressor(
+            n_estimators=7, bootstrap=False, random_state=3
+        ).fit(self.features, self.targets)
+        predictions = model.predict(self.features)
+        quantiles = model.predict_quantiles(self.features, (0.0, 0.5, 1.0))
+        self.assertEqual(
+            quantiles,
+            [[prediction, prediction, prediction] for prediction in predictions],
+        )
+        self.assertEqual(model.predict_std(self.features), [0.0] * len(self.features))
+
+    def test_quantile_levels_are_validated(self):
+        model = RandomForestRegressor(n_estimators=3, random_state=1).fit(
+            self.features, self.targets
+        )
+        for levels in ([], [-0.1], [1.1], [float("nan")], [True], "invalid", 0.5):
+            with self.subTest(levels=levels), self.assertRaises(ValueError):
+                model.predict_quantiles(self.features, levels)
+
+    def test_uncertainty_diagnostics_require_a_fitted_forest(self):
+        model = RandomForestRegressor(n_estimators=2)
+        with self.assertRaises(RuntimeError):
+            model.predict_quantiles([[0.0]])
+        with self.assertRaises(RuntimeError):
+            model.predict_std([[0.0]])
+
+
 if __name__ == "__main__":
     unittest.main()

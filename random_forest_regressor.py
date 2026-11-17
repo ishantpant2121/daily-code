@@ -219,6 +219,92 @@ class RandomForestRegressor:
             for row_index in range(len(matrix))
         ]
 
+    def predict_quantiles(
+        self,
+        features: Iterable[Iterable[Real]],
+        quantiles: Iterable[Real] = (0.05, 0.5, 0.95),
+    ) -> list[list[float]]:
+        """Return empirical per-row quantiles across individual tree predictions.
+
+        Results are sample-major and preserve the requested quantile order.
+        These describe tree-to-tree prediction spread; they are not calibrated
+        predictive intervals and should not be interpreted as coverage bounds.
+        """
+        self._check_fitted()
+        matrix = _feature_matrix(features)
+        if len(matrix[0]) != self.n_features_in_:
+            raise ValueError("input feature count does not match fitted data")
+        try:
+            levels = list(quantiles)
+        except TypeError:
+            raise ValueError("quantiles must be a non-empty iterable of numbers") from None
+        if not levels:
+            raise ValueError("quantiles must contain at least one value")
+        normalized = []
+        for level in levels:
+            if isinstance(level, bool) or not isinstance(level, Real):
+                raise ValueError("quantiles must be finite numbers in [0, 1]")
+            try:
+                value = float(level)
+            except (OverflowError, TypeError, ValueError):
+                raise ValueError("quantiles must be finite numbers in [0, 1]") from None
+            if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+                raise ValueError("quantiles must be finite numbers in [0, 1]")
+            normalized.append(value)
+
+        per_tree = [estimator.predict(matrix) for estimator in self.estimators_]
+        result = []
+        for row_index in range(len(matrix)):
+            ordered = sorted(tree_predictions[row_index] for tree_predictions in per_tree)
+            row = []
+            for level in normalized:
+                position = level * (len(ordered) - 1)
+                lower_index = int(position)
+                upper_index = min(lower_index + 1, len(ordered) - 1)
+                fraction = position - lower_index
+                if lower_index == upper_index:
+                    estimate = ordered[lower_index]
+                else:
+                    try:
+                        estimate = math.fsum((
+                            ordered[lower_index] * (1.0 - fraction),
+                            ordered[upper_index] * fraction,
+                        ))
+                    except OverflowError:
+                        raise ValueError("quantile prediction exceeds finite floating-point range") from None
+                if not math.isfinite(estimate):
+                    raise ValueError("quantile prediction exceeds finite floating-point range")
+                row.append(estimate)
+            result.append(row)
+        return result
+
+    def predict_std(self, features: Iterable[Iterable[Real]]) -> list[float]:
+        """Return population standard deviation across tree predictions per row.
+
+        This is a measure of ensemble disagreement, not a calibrated standard
+        error or a guaranteed estimate of predictive uncertainty.
+        """
+        self._check_fitted()
+        matrix = _feature_matrix(features)
+        if len(matrix[0]) != self.n_features_in_:
+            raise ValueError("input feature count does not match fitted data")
+        per_tree = [estimator.predict(matrix) for estimator in self.estimators_]
+        deviations = []
+        for row_index in range(len(matrix)):
+            values = [tree_predictions[row_index] for tree_predictions in per_tree]
+            scale = max(abs(value) for value in values)
+            if scale == 0.0:
+                deviations.append(0.0)
+                continue
+            normalized = [value / scale for value in values]
+            average = math.fsum(normalized) / len(normalized)
+            variance = math.fsum((value - average) ** 2 for value in normalized) / len(normalized)
+            deviation = scale * math.sqrt(variance)
+            if not math.isfinite(deviation):
+                raise ValueError("prediction spread exceeds finite floating-point range")
+            deviations.append(deviation)
+        return deviations
+
     def apply(self, features: Iterable[Iterable[Real]]) -> list[list[int]]:
         """Return sample-major terminal-node indices, one column per tree."""
         self._check_fitted()

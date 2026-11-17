@@ -6,6 +6,12 @@ from numbers import Real
 from typing import Any, Callable, Iterable
 
 from classification_metrics import balanced_accuracy_score
+from regression_metrics import (
+    mean_absolute_error,
+    mean_squared_error,
+    root_mean_squared_error,
+    r2_score,
+)
 from data_splitting import k_fold_indices, stratified_k_fold_indices
 
 
@@ -23,6 +29,22 @@ def _feature_rows(values: Iterable[Iterable[Any]]) -> list[list[Any]]:
     if any(len(row) != width for row in rows):
         raise ValueError("all feature rows must have equal lengths")
     return rows
+
+
+
+def _score_predictions(scoring: str, actual: list[Any], predicted: list[Any]) -> float:
+    """Apply one supported built-in scorer to already aligned predictions."""
+    if scoring == "accuracy":
+        return sum(a == p for a, p in zip(actual, predicted)) / len(actual)
+    if scoring == "balanced_accuracy":
+        return balanced_accuracy_score(actual, predicted)
+    if scoring == "r2":
+        return r2_score(actual, predicted)
+    if scoring == "neg_mean_squared_error":
+        return -mean_squared_error(actual, predicted)
+    if scoring == "neg_mean_absolute_error":
+        return -mean_absolute_error(actual, predicted)
+    return -root_mean_squared_error(actual, predicted)
 
 
 def _mean_and_std(values: Iterable[float]) -> tuple[float, float]:
@@ -61,8 +83,10 @@ def cross_val_score(
 ) -> list[float]:
     """Evaluate a fresh copy of an estimator on each validation fold.
 
-    Supported built-in scorers are accuracy and balanced_accuracy. A custom
-    scorer receives (fitted_estimator, X_validation, y_validation). When
+    Supported built-in scorers are accuracy, balanced_accuracy, r2,
+    neg_mean_squared_error, neg_mean_absolute_error, and
+    neg_root_mean_squared_error. A custom scorer receives
+    (fitted_estimator, X_validation, y_validation). When
     scoring is None, the estimator's score method is used. Set stratified=True
     for classification targets; every class must contain at least cv samples.
     """
@@ -80,6 +104,10 @@ def cross_val_score(
     if scoring is not None and not callable(scoring) and scoring not in (
         "accuracy",
         "balanced_accuracy",
+        "r2",
+        "neg_mean_squared_error",
+        "neg_mean_absolute_error",
+        "neg_root_mean_squared_error",
     ):
         raise ValueError("scoring must be None, a supported name, or a callable")
     if not callable(getattr(estimator, "fit", None)):
@@ -117,13 +145,7 @@ def cross_val_score(
             predictions = list(predict(x_validation))
             if len(predictions) != len(y_validation):
                 raise ValueError("estimator predictions must match validation labels")
-            if scoring == "accuracy":
-                value = sum(
-                    actual == predicted
-                    for actual, predicted in zip(y_validation, predictions)
-                ) / len(y_validation)
-            else:
-                value = balanced_accuracy_score(y_validation, predictions)
+            value = _score_predictions(scoring, y_validation, predictions)
 
         if isinstance(value, bool) or not isinstance(value, Real):
             raise ValueError("scoring function must return a finite real number")
@@ -152,10 +174,7 @@ def _score_estimator(model: Any, features: list[list[Any]], labels: list[Any], s
         predictions = list(predict(features))
         if len(predictions) != len(labels):
             raise ValueError("estimator predictions must match validation labels")
-        if scoring == "accuracy":
-            value = sum(actual == predicted for actual, predicted in zip(labels, predictions)) / len(labels)
-        else:
-            value = balanced_accuracy_score(labels, predictions)
+        value = _score_predictions(scoring, labels, predictions)
     if isinstance(value, bool) or not isinstance(value, Real):
         raise ValueError("scoring function must return a finite real number")
     try:
@@ -202,7 +221,14 @@ def cross_validate(
         raise ValueError("return_train_score and return_estimator must be booleans")
     if random_state is not None and type(random_state) is not int:
         raise ValueError("random_state must be an integer or None")
-    if scoring is not None and not callable(scoring) and scoring not in ("accuracy", "balanced_accuracy"):
+    if scoring is not None and not callable(scoring) and scoring not in (
+        "accuracy",
+        "balanced_accuracy",
+        "r2",
+        "neg_mean_squared_error",
+        "neg_mean_absolute_error",
+        "neg_root_mean_squared_error",
+    ):
         raise ValueError("scoring must be None, a supported name, or a callable")
     if not callable(getattr(estimator, "fit", None)):
         raise ValueError("estimator must implement fit")

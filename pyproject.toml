@@ -23,6 +23,7 @@ py-modules = [
     "data_splitting",
     "decision_tree",
     "decision_tree_regressor",
+    "gradient_boosting_regressor",
     "day1",
     "day2",
     "day3_linked_lists",
