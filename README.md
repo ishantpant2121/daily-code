@@ -117,6 +117,7 @@ unreachable or returned as infinity.
 
 - **decision_tree.py** — CART classification with Gini or entropy splits, optional per-node random feature subsets, reproducible sampling, leaf probabilities, and feature importances.
 - **random_forest.py** — bootstrap-aggregated decision-tree classification with per-node random feature subsets, class-aligned probabilities, averaged feature importances, optional out-of-bag accuracy/probability diagnostics, per-tree leaf assignments, log probabilities, hard-vote counts, and per-tree feature-importance variability.
+- **decision_tree_regressor.py** and **random_forest_regressor.py** — squared-error regression trees and bootstrap-aggregated regression forests with feature importances and optional out-of-bag R-squared diagnostics.
 - **imputation.py** — SimpleImputer with mean, median, most-frequent, and constant strategies, configurable missing sentinels, and empty-column handling.
 - **pipeline.py** — ordered transformer and estimator composition so preprocessing statistics are learned from training data only.
 - **model_selection.py** — reproducible cross-validation scoring with optional stratification and fresh estimator copies per fold.
@@ -211,6 +212,33 @@ through `apply` natural-log class probabilities through `predict_log_proba`, har
 through `predict_votes`, and per-tree feature-importance variability through
 `feature_importances_std_`. See [the random forest guide](docs/random_forest.md)
 and [the OOB example](examples/random_forest_oob.py) for details.
+
+
+## Regression tree models
+
+The regression estimators use squared-error splits and average target values in
+leaf nodes. The forest averages bootstrap-fitted trees and can report an
+out-of-bag R-squared estimate:
+
+~~~python
+from random_forest_regressor import RandomForestRegressor
+
+model = RandomForestRegressor(
+    n_estimators=100,
+    max_features="sqrt",
+    oob_score=True,
+    random_state=42,
+).fit(x_train, y_train)
+
+print(model.predict(x_test))
+print(model.score(x_test, y_test))
+print(model.oob_score_)
+~~~
+
+See [the regression-tree guide](docs/regression_trees.md) and
+[the runnable example](examples/regression_forest.py). These educational
+implementations are sequential, dependency-free, and designed for small
+numeric datasets.
 
 ## Tests
 
