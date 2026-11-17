@@ -159,6 +159,7 @@ jobs:
           python - <<'PY'
           from decision_tree_regressor import DecisionTreeRegressor
           from random_forest_regressor import RandomForestRegressor
+          from gradient_boosting_regressor import GradientBoostingRegressor
 
           features = [[0.0], [1.0], [2.0], [3.0], [8.0], [9.0], [10.0], [11.0]]
           targets = [0.0, 1.0, 2.0, 3.0, 8.0, 9.0, 10.0, 11.0]
@@ -173,5 +174,10 @@ jobs:
           assert len(forest.oob_counts_) == len(targets)
           assert 0.0 <= forest.oob_coverage_ <= 1.0
           assert len(forest.apply(features)) == len(features)
+          boost = GradientBoostingRegressor(n_estimators=12, max_depth=2, random_state=1).fit(features, targets)
+          assert len(boost.predict(features)) == len(targets)
+          assert len(list(boost.staged_predict(features))) == 12
+          assert len(boost.apply(features)) == len(features)
           PY
           python "$GITHUB_WORKSPACE/examples/regression_forest.py"
+          python "$GITHUB_WORKSPACE/examples/gradient_boosting_regression.py"
