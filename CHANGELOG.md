@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a dependency-free squared-error GradientBoostingRegressor with staged predictions, reproducible stochastic subsampling, feature importances, tests, documentation, and an executable example.
+
 - Added dependency-free DecisionTreeRegressor and RandomForestRegressor implementations with squared-error splits, reproducible bootstrap sampling, feature importances, out-of-bag R-squared diagnostics, tests, documentation, and a runnable example.
 
 - Raise OverflowError when minimum-spanning-tree totals exceed the finite floating-point range.
