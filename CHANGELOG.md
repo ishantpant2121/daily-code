@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added dependency-free DecisionTreeRegressor and RandomForestRegressor implementations with squared-error splits, reproducible bootstrap sampling, feature importances, out-of-bag R-squared diagnostics, tests, documentation, and a runnable example.
+
 - Raise OverflowError when minimum-spanning-tree totals exceed the finite floating-point range.
 
 - Raise OverflowError when shortest-path algorithms encounter accumulated costs outside the finite floating-point range.
