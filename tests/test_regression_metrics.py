@@ -46,6 +46,11 @@ class RegressionMetricsTests(unittest.TestCase):
             1.5,
         )
 
+    def test_mean_absolute_error_scales_large_finite_values(self):
+        self.assertEqual(mean_absolute_error([1e308, 1e308], [0.0, 0.0]), 1e308)
+        with self.assertRaises(ValueError):
+            mean_absolute_error([1e308], [-1e308])
+
     def test_explained_variance_measures_residual_spread(self):
         self.assertAlmostEqual(explained_variance_score([1, 2, 3], [4, 5, 6]), 1.0)
         self.assertAlmostEqual(explained_variance_score([1, 2, 3], [1, 2, 4]), 2 / 3)

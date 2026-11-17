@@ -34,10 +34,25 @@ def _paired_values(y_true: Iterable[Real], y_pred: Iterable[Real]) -> tuple[list
     return actual_values, predicted_values
 
 
+def _stable_mean(values: list[float], message: str) -> float:
+    """Return a mean without overflowing an otherwise representable average."""
+    scale = max(abs(value) for value in values)
+    if scale == 0.0:
+        return 0.0
+    normalized_mean = math.fsum(value / scale for value in values) / len(values)
+    result = scale * normalized_mean
+    if not math.isfinite(result):
+        raise ValueError(message)
+    return result
+
+
 def mean_absolute_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
     """Return the mean absolute prediction error."""
     actual, predicted = _paired_values(y_true, y_pred)
-    return math.fsum(abs(a - p) for a, p in zip(actual, predicted)) / len(actual)
+    return _stable_mean(
+        _absolute_errors(actual, predicted),
+        "mean absolute error exceeds finite floating-point range",
+    )
 
 
 def mean_squared_error(y_true: Iterable[Real], y_pred: Iterable[Real]) -> float:
