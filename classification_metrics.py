@@ -1,4 +1,4 @@
-"""Dependency-free metrics for binary and one-vs-rest classification."""
+"""Dependency-free metrics for binary and multiclass classification."""
 
 from itertools import zip_longest
 import math

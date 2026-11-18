@@ -57,10 +57,6 @@ class CalibrationCurveTests(unittest.TestCase):
             calibration_curve([0, 1], [0.1])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class CalibrationBinningTests(unittest.TestCase):
     def test_quantile_bins_approximately_balance_counts(self):
         result = calibration_curve(

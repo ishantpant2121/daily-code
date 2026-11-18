@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added tie-preserving quantile calibration bins, multiclass top-label and classwise reliability curves, ECE/MCE/RMSCE summaries, and multiclass Brier/log losses with regression tests and a runnable GaussianNB example.
+
+
 - Hardened regression metrics against intermediate overflow and underflow for large or tiny finite values; added focused numerical regression coverage and documentation.
 
 - Added built-in R-squared and negative regression-error scorers to cross-validation and hyperparameter search.
