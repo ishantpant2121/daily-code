@@ -811,3 +811,76 @@ def cohen_kappa_score(
     if expected_disagreement == 0:
         raise ValueError("Cohen kappa is undefined when expected disagreement is zero")
     return 1.0 - observed_disagreement / expected_disagreement
+
+
+def _multilabel_indicator_rows(
+    y_true: Iterable[Iterable[Any]],
+    y_pred: Iterable[Iterable[Any]],
+) -> tuple[list[list[int]], list[list[int]]]:
+    """Validate aligned binary indicator matrices."""
+    try:
+        actual = [list(row) for row in y_true]
+        predicted = [list(row) for row in y_pred]
+    except TypeError:
+        raise ValueError("multilabel inputs must be iterable rows") from None
+    if not actual or len(actual) != len(predicted):
+        raise ValueError("multilabel inputs must have equal non-zero row counts")
+    width = len(actual[0])
+    if width == 0:
+        raise ValueError("multilabel inputs must contain at least one label column")
+    if any(len(row) != width for row in actual + predicted):
+        raise ValueError("all multilabel rows must have equal lengths")
+    converted = []
+    for rows in (actual, predicted):
+        normalized = []
+        for row in rows:
+            values = []
+            for value in row:
+                if value not in (0, 1, False, True):
+                    raise ValueError("multilabel indicators must contain only 0, 1, or booleans")
+                values.append(int(value))
+            normalized.append(values)
+        converted.append(normalized)
+    return converted[0], converted[1]
+
+
+def multilabel_confusion_matrix(
+    y_true: Iterable[Iterable[Any]],
+    y_pred: Iterable[Iterable[Any]],
+) -> list[list[list[int]]]:
+    """Return one 2x2 (TN, FP; FN, TP) confusion matrix per label column."""
+    actual, predicted = _multilabel_indicator_rows(y_true, y_pred)
+    width = len(actual[0])
+    matrices = []
+    for column in range(width):
+        true_negative = false_positive = false_negative = true_positive = 0
+        for actual_row, predicted_row in zip(actual, predicted):
+            truth = actual_row[column]
+            estimate = predicted_row[column]
+            if truth and estimate:
+                true_positive += 1
+            elif estimate:
+                false_positive += 1
+            elif truth:
+                false_negative += 1
+            else:
+                true_negative += 1
+        matrices.append([
+            [true_negative, false_positive],
+            [false_negative, true_positive],
+        ])
+    return matrices
+
+
+def hamming_loss(
+    y_true: Iterable[Iterable[Any]],
+    y_pred: Iterable[Iterable[Any]],
+) -> float:
+    """Return the fraction of incorrect label indicators in multilabel data."""
+    actual, predicted = _multilabel_indicator_rows(y_true, y_pred)
+    mismatches = sum(
+        left != right
+        for actual_row, predicted_row in zip(actual, predicted)
+        for left, right in zip(actual_row, predicted_row)
+    )
+    return mismatches / (len(actual) * len(actual[0]))
