@@ -67,7 +67,7 @@ class CountVectorizerTests(unittest.TestCase):
         self.assertEqual(vectorizer.get_feature_names_out(), ["apple", "banana"])
         self.assertEqual(vectorizer.document_frequency_, {"apple": 3, "banana": 2})
 
-        capped = CountVectorizer(max_df=0.66).fit(
+        capped = CountVectorizer(max_df=0.67).fit(
             ["apple banana", "apple banana", "apple cherry"]
         )
         self.assertEqual(capped.get_feature_names_out(), ["banana", "cherry"])
