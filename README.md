@@ -94,7 +94,7 @@ unreachable or returned as infinity.
 
 - **classification_metrics.py** — accuracy, precision, recall, F1, balanced
   accuracy, Matthews correlation, confusion matrices, ROC/precision-recall
-  curves, average precision, Brier score, and binary log loss.
+  curves, average precision, and binary/multiclass Brier and log losses.
 - **regression_metrics.py** — absolute, squared, logarithmic, median, and maximum
   errors, explained variance, and R-squared with an explicit constant-target policy.
 - **data_splitting.py** — reproducible train/test splits, stratified holdout
@@ -344,7 +344,7 @@ fitting, so the original objects remain unchanged.
 - **clustering_metrics.py** — per-sample and mean silhouette coefficients, adjusted Rand agreement, and Davies-Bouldin cluster separation.
 - **feature_importance.py** — model-agnostic permutation importance for an already-fitted estimator, with repeat-level score drops, means, and standard deviations.
 - **model_diagnostics.py** — learning curves, validation curves (including `step__parameter` pipeline parameters), and paired bootstrap confidence intervals for a fitted model's evaluation score.
-- **calibration_metrics.py** — binary reliability bins, expected calibration error, and maximum calibration error for probability predictions.
+- **calibration_metrics.py** — binary uniform/quantile reliability bins, multiclass top-label and classwise reliability curves, and ECE/MCE/RMSCE summaries.
 - **regression_metrics.py** — MAE, MSE, RMSE, median/max error, R-squared, explained variance, and logarithmic regression losses. See the [regression metrics guide](docs/regression_metrics.md) for numerical behavior.
 
 Examples:
@@ -355,6 +355,7 @@ python examples/group_validation.py
 python examples/clustering_evaluation.py
 python examples/model_inspection.py
 python examples/probability_calibration.py
+python examples/multiclass_probability_calibration.py
 python examples/gradient_boosting_regression.py
 ~~~
 

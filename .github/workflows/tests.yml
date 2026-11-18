@@ -32,7 +32,7 @@ jobs:
         run: |
           cd /tmp
           python - <<'PY'
-          from classification_metrics import average_precision_score, balanced_accuracy_score, brier_score_loss, log_loss, matthews_corrcoef, precision_recall_curve, roc_curve
+          from classification_metrics import average_precision_score, balanced_accuracy_score, brier_score_loss, log_loss, matthews_corrcoef, multiclass_brier_score_loss, multiclass_log_loss, precision_recall_curve, roc_curve
           from decision_tree import DecisionTreeClassifier
           from gaussian_nb import GaussianNB
           from imputation import SimpleImputer
@@ -102,7 +102,8 @@ jobs:
           cd /tmp
           python - <<'PY'
           from advanced_splitting import GroupKFold, GroupShuffleSplit, LeaveOneOut, RepeatedKFold, RepeatedStratifiedKFold, StratifiedShuffleSplit, TimeSeriesSplit
-          from calibration_metrics import calibration_curve, expected_calibration_error, maximum_calibration_error
+          from calibration_metrics import (calibration_curve, expected_calibration_error, maximum_calibration_error, multiclass_calibration_curve, multiclass_expected_calibration_error, multiclass_maximum_calibration_error, multiclass_root_mean_squared_calibration_error, classwise_calibration_curves)
+          from classification_metrics import multiclass_brier_score_loss, multiclass_log_loss
           from clustering_metrics import adjusted_rand_score, davies_bouldin_score, silhouette_score
           from decision_tree import DecisionTreeClassifier
           from feature_importance import permutation_importance
@@ -140,6 +141,18 @@ jobs:
           assert calibration["bin_counts"] == [2, 2]
           assert expected_calibration_error([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9], n_bins=2) < 0.2
           assert maximum_calibration_error([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9], n_bins=2) < 0.2
+          assert calibration_curve([1, 0, 1, 0], [0.1, 0.1, 0.2, 0.9], n_bins=2, strategy="quantile")["bin_counts"] == [2, 2]
+          multi_labels = ["low", "middle", "high"]
+          multi_y = ["low", "middle", "high"]
+          multi_probabilities = [[0.9, 0.05, 0.05], [0.05, 0.9, 0.05], [0.05, 0.05, 0.9]]
+          multi_curve = multiclass_calibration_curve(multi_y, multi_probabilities, labels=multi_labels, n_bins=3)
+          assert sum(multi_curve["bin_counts"]) == 3
+          assert abs(multiclass_expected_calibration_error(multi_y, multi_probabilities, labels=multi_labels, n_bins=3) - 0.1) < 1e-12
+          assert abs(multiclass_maximum_calibration_error(multi_y, multi_probabilities, labels=multi_labels, n_bins=3) - 0.1) < 1e-12
+          assert abs(multiclass_root_mean_squared_calibration_error(multi_y, multi_probabilities, labels=multi_labels, n_bins=3) - 0.1) < 1e-12
+          assert list(classwise_calibration_curves(multi_y, multi_probabilities, labels=multi_labels)) == multi_labels
+          assert abs(multiclass_brier_score_loss(multi_y, multi_probabilities, labels=multi_labels) - 0.015) < 1e-12
+          assert multiclass_log_loss(multi_y, multi_probabilities, labels=multi_labels) < 0.11
           PY
 
       - name: Run advanced validation and model-inspection examples
@@ -149,6 +162,7 @@ jobs:
           python examples/clustering_evaluation.py
           python examples/model_inspection.py
           python examples/probability_calibration.py
+          python examples/multiclass_probability_calibration.py
           python examples/permutation_importance.py
           python examples/bootstrap_confidence_interval.py
           python examples/random_forest_oob.py
