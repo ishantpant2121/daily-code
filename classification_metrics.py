@@ -627,6 +627,14 @@ def fbeta_score(
     )
     precision = metrics["precision"]
     recall = metrics["recall"]
+    if value >= 1.0:
+        inverse_beta_squared = (1.0 / value) ** 2
+        denominator = precision + inverse_beta_squared * recall
+        if denominator == 0:
+            return float(zero_division)
+        return (
+            (1.0 + inverse_beta_squared) * precision * recall / denominator
+        )
     beta_squared = value * value
     denominator = beta_squared * precision + recall
     if denominator == 0:
@@ -915,7 +923,7 @@ def multiclass_roc_auc_score(
     scores = []
     supports = []
     for column, label in enumerate(classes):
-        binary_true = [value == label for value in actual]
+        binary_true = [value == column for value in actual]
         binary_score = [row[column] for row in rows]
         scores.append(roc_auc_score(binary_true, binary_score, positive_label=True))
         supports.append(sum(binary_true))
@@ -951,7 +959,7 @@ def multiclass_average_precision_score(
     scores = []
     supports = []
     for column, label in enumerate(classes):
-        binary_true = [value == label for value in actual]
+        binary_true = [value == column for value in actual]
         binary_score = [row[column] for row in rows]
         scores.append(
             average_precision_score(binary_true, binary_score, positive_label=True)
