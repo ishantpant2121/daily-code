@@ -59,6 +59,7 @@ class CountVectorizer:
 
     def fit(self, documents: Iterable[str]) -> "CountVectorizer":
         """Learn a vocabulary from document and term frequencies."""
+        self._fitted = False
         corpus = validate_documents(documents)
         if not corpus:
             raise ValueError("at least one training document is required")
