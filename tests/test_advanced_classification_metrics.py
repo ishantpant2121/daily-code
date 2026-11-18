@@ -45,7 +45,7 @@ class FBetaTests(unittest.TestCase):
             classification_metrics(actual, predicted)["f1"],
         )
         self.assertAlmostEqual(fbeta_score(actual, predicted, beta=2), 5 / 18)
-        self.assertAlmostEqual(fbeta_score(actual, predicted, beta=0.5), 5 / 24)
+        self.assertAlmostEqual(fbeta_score(actual, predicted, beta=0.5), 5 / 12)
 
     def test_large_beta_is_numerically_stable(self):
         self.assertAlmostEqual(
