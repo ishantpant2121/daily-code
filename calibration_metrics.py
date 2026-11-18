@@ -76,11 +76,11 @@ def calibration_curve(
     by increasing confidence and include bin counts.
     """
     actual, probabilities = _binary_inputs(y_true, y_prob, n_bins, positive_label)
+    indices = _calibration_bin_indices(probabilities, n_bins, strategy)
     counts = [0] * n_bins
     probability_sums = [0.0] * n_bins
     positive_sums = [0] * n_bins
-    for label, probability in zip(actual, probabilities):
-        index = min(int(probability * n_bins), n_bins - 1)
+    for label, probability, index in zip(actual, probabilities, indices):
         counts[index] += 1
         probability_sums[index] += probability
         positive_sums[index] += int(label)
