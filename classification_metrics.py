@@ -764,3 +764,50 @@ def classification_report(
         },
         "support": total,
     }
+
+
+def cohen_kappa_score(
+    y_true: Iterable[Any],
+    y_pred: Iterable[Any],
+    *,
+    labels: Iterable[Any] | None = None,
+    weights: str | None = None,
+) -> float:
+    """Return Cohen's kappa, optionally with linear or quadratic disagreement weights.
+
+    A degenerate expected-disagreement denominator raises ValueError rather
+    than returning a misleading finite coefficient.
+    """
+    if weights not in (None, "linear", "quadratic"):
+        raise ValueError("weights must be None, 'linear', or 'quadratic'")
+    matrix = confusion_matrix(y_true, y_pred, labels=labels)
+    size = len(matrix)
+    if size < 2:
+        raise ValueError("Cohen kappa requires at least two classes")
+    total = sum(sum(row) for row in matrix)
+    if total == 0:
+        raise ValueError("y_true and y_pred must not be empty")
+    row_totals = [sum(row) for row in matrix]
+    column_totals = [
+        sum(matrix[row][column] for row in range(size))
+        for column in range(size)
+    ]
+
+    observed_disagreement = 0.0
+    expected_disagreement = 0.0
+    for row in range(size):
+        for column in range(size):
+            distance = abs(row - column) / (size - 1)
+            if weights == "linear":
+                disagreement = distance
+            elif weights == "quadratic":
+                disagreement = distance * distance
+            else:
+                disagreement = float(row != column)
+            observed_disagreement += disagreement * matrix[row][column]
+            expected_disagreement += (
+                disagreement * row_totals[row] * column_totals[column] / total
+            )
+    if expected_disagreement == 0:
+        raise ValueError("Cohen kappa is undefined when expected disagreement is zero")
+    return 1.0 - observed_disagreement / expected_disagreement
