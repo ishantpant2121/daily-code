@@ -576,3 +576,27 @@ def multiclass_log_loss(
         normalized_true_probability = clipped[target] / total
         losses.append(-math.log(normalized_true_probability))
     return math.fsum(losses) / len(losses)
+
+
+def top_k_accuracy_score(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Iterable[Real]],
+    *,
+    labels: Iterable[Any],
+    k: int = 2,
+) -> float:
+    """Return the fraction of samples whose true class is among the top k.
+
+    Probability columns follow labels. Equal scores are resolved by the
+    supplied class order, making the result deterministic.
+    """
+    targets, classes, rows = _multiclass_probability_inputs(
+        y_true, y_probability, labels
+    )
+    if type(k) is not int or not 1 <= k <= len(classes):
+        raise ValueError("k must be an integer between 1 and the number of classes")
+    correct = 0
+    for target, row in zip(targets, rows):
+        ranked = sorted(range(len(classes)), key=lambda index: (-row[index], index))
+        correct += int(target in ranked[:k])
+    return correct / len(rows)
