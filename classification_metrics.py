@@ -600,3 +600,35 @@ def top_k_accuracy_score(
         ranked = sorted(range(len(classes)), key=lambda index: (-row[index], index))
         correct += int(target in ranked[:k])
     return correct / len(rows)
+
+
+def fbeta_score(
+    y_true: Iterable[Any],
+    y_pred: Iterable[Any],
+    *,
+    beta: Real = 1.0,
+    positive_label: Any = 1,
+    zero_division: int = 0,
+) -> float:
+    """Return the binary F-beta score with configurable precision/recall weight."""
+    if isinstance(beta, bool) or not isinstance(beta, Real):
+        raise ValueError("beta must be a positive finite real number")
+    try:
+        value = float(beta)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError("beta must be a positive finite real number") from None
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError("beta must be a positive finite real number")
+    if type(zero_division) is not int or zero_division not in (0, 1):
+        raise ValueError("zero_division must be 0 or 1")
+
+    metrics = classification_metrics(
+        y_true, y_pred, positive_label=positive_label, zero_division=zero_division
+    )
+    precision = metrics["precision"]
+    recall = metrics["recall"]
+    beta_squared = value * value
+    denominator = beta_squared * precision + recall
+    if denominator == 0:
+        return float(zero_division)
+    return (1.0 + beta_squared) * precision * recall / denominator
