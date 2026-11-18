@@ -94,7 +94,9 @@ unreachable or returned as infinity.
 
 - **classification_metrics.py** — accuracy, precision, recall, F1, balanced
   accuracy, Matthews correlation, confusion matrices, ROC/precision-recall
-  curves, average precision, and binary/multiclass Brier and log losses.
+  curves, average precision, top-k accuracy, F-beta, classification reports,
+  Cohen kappa, multilabel confusion matrices/Hamming loss, and binary/multiclass
+  Brier, log, ROC AUC, and average-precision scores.
 - **regression_metrics.py** — absolute, squared, logarithmic, median, and maximum
   errors, explained variance, and R-squared with an explicit constant-target policy.
 - **data_splitting.py** — reproducible train/test splits, stratified holdout
@@ -356,9 +358,10 @@ python examples/clustering_evaluation.py
 python examples/model_inspection.py
 python examples/probability_calibration.py
 python examples/multiclass_probability_calibration.py
+python examples/advanced_classification_metrics.py
 python examples/gradient_boosting_regression.py
 ~~~
 
-Focused guides: [advanced validation](docs/advanced_validation.md), [clustering metrics](docs/clustering_metrics.md), [model inspection](docs/model_inspection.md), and [probability calibration](docs/probability_calibration.md), plus [regression trees and boosting](docs/regression_trees.md).
+Focused guides: [advanced validation](docs/advanced_validation.md), [clustering metrics](docs/clustering_metrics.md), [model inspection](docs/model_inspection.md), and [probability calibration](docs/probability_calibration.md), [classification metrics](docs/classification_metrics.md), plus [regression trees and boosting](docs/regression_trees.md).
 
 These are educational, dependency-free implementations. Silhouette scoring is quadratic in sample count; permutation importance performs one model scoring pass per feature and repeat; bootstrap intervals condition on the already-fitted model. Use held-out data for model inspection, and choose time- or group-aware validation whenever observations are not independent.
