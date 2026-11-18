@@ -218,3 +218,19 @@ jobs:
           PY
           python "$GITHUB_WORKSPACE/examples/regression_forest.py"
           python "$GITHUB_WORKSPACE/examples/gradient_boosting_regression.py"
+
+      - name: Smoke-test installed text vectorization package
+        run: |
+          cd /tmp
+          python - <<'PY'
+          from text_vectorization import CountVectorizer, TfidfVectorizer
+
+          documents = ["red fox fox", "blue fox"]
+          counts = CountVectorizer().fit_transform(documents)
+          assert counts == [[0, 2, 1], [1, 1, 0]]
+          tfidf = TfidfVectorizer().fit_transform(documents)
+          assert len(tfidf) == 2
+          assert all(abs(sum(value * value for value in row) - 1.0) < 1e-9 for row in tfidf)
+          PY
+      - name: Run text vectorization example
+        run: python examples/text_vectorization.py
