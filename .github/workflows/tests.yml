@@ -103,6 +103,7 @@ jobs:
           python - <<'PY'
           from advanced_splitting import GroupKFold, GroupShuffleSplit, LeaveOneOut, RepeatedKFold, RepeatedStratifiedKFold, StratifiedShuffleSplit, TimeSeriesSplit
           from calibration_metrics import (calibration_curve, expected_calibration_error, maximum_calibration_error, multiclass_calibration_curve, multiclass_expected_calibration_error, multiclass_maximum_calibration_error, multiclass_root_mean_squared_calibration_error, classwise_calibration_curves)
+          from classification_metrics import multiclass_brier_score_loss, multiclass_log_loss
           from clustering_metrics import adjusted_rand_score, davies_bouldin_score, silhouette_score
           from decision_tree import DecisionTreeClassifier
           from feature_importance import permutation_importance
