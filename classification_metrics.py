@@ -467,3 +467,112 @@ def roc_curve(
         thresholds.append(threshold)
         index = end
     return false_positive_rates, true_positive_rates, thresholds
+
+
+def _multiclass_probability_inputs(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Iterable[Real]],
+    labels: Iterable[Any],
+) -> tuple[list[int], list[Any], list[list[float]]]:
+    """Validate class-aligned probability rows and map targets to columns."""
+    try:
+        actual = list(y_true)
+        rows = [list(row) for row in y_probability]
+        classes = list(labels)
+    except TypeError:
+        raise ValueError("labels and probabilities must be iterable") from None
+    if len(classes) < 2:
+        raise ValueError("at least two class labels are required")
+    if not actual or len(actual) != len(rows):
+        raise ValueError("labels and probabilities must be non-empty and have equal lengths")
+
+    positions: dict[Any, int] = {}
+    try:
+        for index, label in enumerate(classes):
+            if label in positions:
+                raise ValueError("class labels must be unique")
+            positions[label] = index
+        targets = [positions[label] for label in actual]
+    except TypeError:
+        raise ValueError("class labels must be hashable") from None
+    except KeyError:
+        raise ValueError("y_true contains a label not present in labels") from None
+
+    converted_rows = []
+    for row in rows:
+        if len(row) != len(classes):
+            raise ValueError("each probability row must contain one value per class")
+        converted = []
+        for value in row:
+            if isinstance(value, bool) or not isinstance(value, Real):
+                raise ValueError("probabilities must be finite values in [0, 1]")
+            try:
+                number = float(value)
+            except (OverflowError, TypeError, ValueError):
+                raise ValueError("probabilities must be finite values in [0, 1]") from None
+            if not math.isfinite(number) or not 0.0 <= number <= 1.0:
+                raise ValueError("probabilities must be finite values in [0, 1]")
+            converted.append(number)
+        if not math.isclose(math.fsum(converted), 1.0, rel_tol=1e-6, abs_tol=1e-8):
+            raise ValueError("each probability row must sum to one")
+        converted_rows.append(converted)
+    return targets, classes, converted_rows
+
+
+def multiclass_brier_score_loss(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Iterable[Real]],
+    *,
+    labels: Iterable[Any],
+) -> float:
+    """Return mean summed squared error across all class probabilities.
+
+    The class-column order is defined by labels. For each sample, the score
+    sums (p_k - 1[y=k]) squared over classes, then averages over samples.
+    This multiclass definition is the unhalved sum across class columns.
+    """
+    targets, classes, rows = _multiclass_probability_inputs(
+        y_true, y_probability, labels
+    )
+    losses = []
+    for target, row in zip(targets, rows):
+        losses.append(
+            math.fsum(
+                (probability - float(index == target)) ** 2
+                for index, probability in enumerate(row)
+            )
+        )
+    return math.fsum(losses) / len(rows)
+
+
+def multiclass_log_loss(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Iterable[Real]],
+    *,
+    labels: Iterable[Any],
+    eps: Real = 1e-15,
+) -> float:
+    """Return multiclass negative log likelihood with clipping and renormalization.
+
+    Probability columns follow labels. Values below eps are clipped, then each
+    row is renormalized before the true-class probability is scored.
+    """
+    targets, classes, rows = _multiclass_probability_inputs(
+        y_true, y_probability, labels
+    )
+    if isinstance(eps, bool) or not isinstance(eps, Real):
+        raise ValueError("eps must be a finite positive number smaller than 1 / n_classes")
+    try:
+        epsilon = float(eps)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError("eps must be a finite positive number smaller than 1 / n_classes") from None
+    if not math.isfinite(epsilon) or not 0.0 < epsilon < 1.0 / len(classes):
+        raise ValueError("eps must be a finite positive number smaller than 1 / n_classes")
+
+    losses = []
+    for target, row in zip(targets, rows):
+        clipped = [max(epsilon, probability) for probability in row]
+        total = math.fsum(clipped)
+        normalized_true_probability = clipped[target] / total
+        losses.append(-math.log(normalized_true_probability))
+    return math.fsum(losses) / len(losses)
