@@ -233,4 +233,4 @@ jobs:
           assert all(abs(sum(value * value for value in row) - 1.0) < 1e-9 for row in tfidf)
           PY
       - name: Run text vectorization example
-        run: python examples/text_vectorization.py
+        run: python examples/text_vectorization_demo.py

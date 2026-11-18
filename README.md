@@ -360,7 +360,7 @@ python examples/model_inspection.py
 python examples/probability_calibration.py
 python examples/multiclass_probability_calibration.py
 python examples/advanced_classification_metrics.py
-python examples/text_vectorization.py
+python examples/text_vectorization_demo.py
 python examples/gradient_boosting_regression.py
 ~~~
 
