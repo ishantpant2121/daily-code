@@ -59,3 +59,50 @@ class CalibrationCurveTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CalibrationBinningTests(unittest.TestCase):
+    def test_quantile_bins_approximately_balance_counts(self):
+        result = calibration_curve(
+            [1, 0, 1, 0],
+            [0.1, 0.1, 0.2, 0.9],
+            n_bins=2,
+            strategy="quantile",
+        )
+        self.assertEqual(result["bin_counts"], [2, 2])
+        self.assertAlmostEqual(result["prob_pred"][0], 0.1)
+        self.assertAlmostEqual(result["prob_pred"][1], 0.55)
+
+    def test_quantile_binning_keeps_equal_probabilities_together(self):
+        result = calibration_curve(
+            [1, 0, 1, 0, 1],
+            [0.2, 0.2, 0.2, 0.8, 0.9],
+            n_bins=3,
+            strategy="quantile",
+        )
+        self.assertEqual(sum(result["bin_counts"]), 5)
+        self.assertEqual(result["bin_counts"][0], 3)
+
+    def test_scalar_errors_use_the_selected_binning_strategy(self):
+        labels = [1, 0, 1, 0]
+        probabilities = [0.1, 0.1, 0.2, 0.9]
+        self.assertAlmostEqual(
+            expected_calibration_error(
+                labels, probabilities, n_bins=2, strategy="quantile"
+            ),
+            0.225,
+        )
+        self.assertAlmostEqual(
+            maximum_calibration_error(
+                labels, probabilities, n_bins=2, strategy="quantile"
+            ),
+            0.4,
+        )
+
+    def test_rejects_unknown_binning_strategy(self):
+        with self.assertRaises(ValueError):
+            calibration_curve([0, 1], [0.1, 0.9], strategy="adaptive")
+
+
+if __name__ == "__main__":
+    unittest.main()

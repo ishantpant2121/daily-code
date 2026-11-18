@@ -1,5 +1,6 @@
 """Dependency-free probability calibration metrics for binary classifiers."""
 
+from bisect import bisect_left
 import math
 from numbers import Real
 from typing import Any, Iterable
@@ -35,18 +36,44 @@ def _binary_inputs(
     return actual, converted
 
 
+def _calibration_bin_indices(
+    probabilities: list[float],
+    n_bins: int,
+    strategy: str,
+) -> list[int]:
+    """Assign probabilities to uniform-width or tie-preserving quantile bins."""
+    if type(n_bins) is not int or n_bins < 1:
+        raise ValueError("n_bins must be a positive integer")
+    if strategy not in ("uniform", "quantile"):
+        raise ValueError("strategy must be 'uniform' or 'quantile'")
+    if strategy == "uniform":
+        return [min(int(value * n_bins), n_bins - 1) for value in probabilities]
+
+    ordered = sorted(probabilities)
+    # Quantile boundaries are observed values. bisect_left keeps equal
+    # probabilities together rather than splitting ties across adjacent bins.
+    edges = [
+        ordered[(index * len(ordered) + n_bins - 1) // n_bins - 1]
+        for index in range(1, n_bins)
+    ]
+    return [bisect_left(edges, value) for value in probabilities]
+
+
 def calibration_curve(
     y_true: Iterable[Any],
     y_prob: Iterable[Real],
     *,
     n_bins: int = 10,
     positive_label: Any = 1,
+    strategy: str = "uniform",
 ) -> dict[str, list[float] | list[int]]:
-    """Summarize observed frequency and mean confidence in uniform-width bins.
+    """Summarize observed frequency and mean confidence in probability bins.
 
-    Empty bins are omitted. The final bin includes probability 1.0. Returned
-    lists are ordered by increasing confidence and include bin counts so callers
-    can distinguish well-supported bins from bins with few observations.
+    strategy may be "uniform" for equal-width bins or "quantile" for
+    approximately equal-frequency bins. Quantile boundaries use observed
+    probabilities and keep tied values in the same bin. Empty bins are omitted.
+    The final uniform bin includes probability 1.0. Returned lists are ordered
+    by increasing confidence and include bin counts.
     """
     actual, probabilities = _binary_inputs(y_true, y_prob, n_bins, positive_label)
     counts = [0] * n_bins
@@ -81,10 +108,12 @@ def expected_calibration_error(
     *,
     n_bins: int = 10,
     positive_label: Any = 1,
+    strategy: str = "uniform",
 ) -> float:
     """Return the count-weighted mean absolute calibration gap."""
     curve = calibration_curve(
-        y_true, y_prob, n_bins=n_bins, positive_label=positive_label
+        y_true, y_prob, n_bins=n_bins, positive_label=positive_label,
+        strategy=strategy,
     )
     counts = curve["bin_counts"]
     gaps = [
@@ -100,10 +129,12 @@ def maximum_calibration_error(
     *,
     n_bins: int = 10,
     positive_label: Any = 1,
+    strategy: str = "uniform",
 ) -> float:
     """Return the largest absolute calibration gap among non-empty bins."""
     curve = calibration_curve(
-        y_true, y_prob, n_bins=n_bins, positive_label=positive_label
+        y_true, y_prob, n_bins=n_bins, positive_label=positive_label,
+        strategy=strategy,
     )
     return max(
         abs(observed - confidence)
