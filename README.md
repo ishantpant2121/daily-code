@@ -103,6 +103,7 @@ unreachable or returned as infinity.
   splits, balanced K-fold indices, and stratified K-fold indices.
 - **preprocessing.py** — MinMaxScaler, StandardScaler, RobustScaler, polynomial
   expansion, variance-based feature selection, one-hot encoding, and label encoding.
+- **text_vectorization/** — dependency-free CountVectorizer and TfidfVectorizer with word n-grams, document-frequency filtering, and TF-IDF normalization.
 - **knn_classifier.py** and **knn_regressor.py** — dependency-free nearest-neighbor
   classification and regression with Euclidean/Manhattan distance and optional
   inverse-distance weighting.
@@ -359,6 +360,7 @@ python examples/model_inspection.py
 python examples/probability_calibration.py
 python examples/multiclass_probability_calibration.py
 python examples/advanced_classification_metrics.py
+python examples/text_vectorization_demo.py
 python examples/gradient_boosting_regression.py
 ~~~
 

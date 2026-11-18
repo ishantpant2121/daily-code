@@ -61,7 +61,7 @@ py-modules = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["csv_inspector*"]
+include = ["csv_inspector*", "text_vectorization*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "csv_inspector.__version__"}
