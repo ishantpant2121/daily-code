@@ -632,3 +632,135 @@ def fbeta_score(
     if denominator == 0:
         return float(zero_division)
     return (1.0 + beta_squared) * precision * recall / denominator
+
+
+def classification_report(
+    y_true: Iterable[Any],
+    y_pred: Iterable[Any],
+    *,
+    labels: Iterable[Any] | None = None,
+    zero_division: int = 0,
+) -> dict[str, Any]:
+    """Return per-class precision/recall/F1 plus macro, micro, and weighted averages.
+
+    If labels is omitted, class order follows first appearance across y_true
+    and y_pred. Explicit labels can retain absent classes in the report.
+    """
+    if type(zero_division) is not int or zero_division not in (0, 1):
+        raise ValueError("zero_division must be 0 or 1")
+    actual = list(y_true)
+    predicted = list(y_pred)
+    if not actual:
+        raise ValueError("y_true and y_pred must not be empty")
+    if len(actual) != len(predicted):
+        raise ValueError("y_true and y_pred must have equal lengths")
+
+    if labels is None:
+        class_labels = []
+        seen = set()
+        try:
+            for value in actual + predicted:
+                if value not in seen:
+                    seen.add(value)
+                    class_labels.append(value)
+        except TypeError:
+            raise ValueError("class labels must be hashable") from None
+    else:
+        class_labels = list(labels)
+        if not class_labels:
+            raise ValueError("labels must not be empty")
+        seen = set()
+        try:
+            for value in class_labels:
+                if value in seen:
+                    raise ValueError("labels must not contain duplicates")
+                seen.add(value)
+        except TypeError:
+            raise ValueError("class labels must be hashable") from None
+
+    matrix = confusion_matrix(actual, predicted, labels=class_labels)
+    size = len(matrix)
+    supports = [sum(row) for row in matrix]
+    predicted_counts = [
+        sum(matrix[row][column] for row in range(size))
+        for column in range(size)
+    ]
+    per_class = {}
+    precision_values = []
+    recall_values = []
+    f1_values = []
+    for index, label in enumerate(class_labels):
+        true_positive = matrix[index][index]
+        false_positive = predicted_counts[index] - true_positive
+        false_negative = supports[index] - true_positive
+        precision_denominator = true_positive + false_positive
+        recall_denominator = true_positive + false_negative
+        f1_denominator = 2 * true_positive + false_positive + false_negative
+        precision = (
+            true_positive / precision_denominator
+            if precision_denominator else float(zero_division)
+        )
+        recall = (
+            true_positive / recall_denominator
+            if recall_denominator else float(zero_division)
+        )
+        f1 = (
+            2 * true_positive / f1_denominator
+            if f1_denominator else float(zero_division)
+        )
+        per_class[label] = {
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "support": supports[index],
+        }
+        precision_values.append(precision)
+        recall_values.append(recall)
+        f1_values.append(f1)
+
+    total = len(actual)
+    correct = sum(matrix[index][index] for index in range(size))
+    micro_false_positive = sum(predicted_counts) - correct
+    micro_false_negative = total - correct
+    micro_precision_denominator = correct + micro_false_positive
+    micro_recall_denominator = correct + micro_false_negative
+    micro_precision = (
+        correct / micro_precision_denominator
+        if micro_precision_denominator else float(zero_division)
+    )
+    micro_recall = (
+        correct / micro_recall_denominator
+        if micro_recall_denominator else float(zero_division)
+    )
+    micro_f1_denominator = 2 * correct + micro_false_positive + micro_false_negative
+    micro_f1 = (
+        2 * correct / micro_f1_denominator
+        if micro_f1_denominator else float(zero_division)
+    )
+    weighted = lambda values: math.fsum(
+        value * support for value, support in zip(values, supports)
+    ) / total
+    return {
+        "labels": tuple(class_labels),
+        "per_class": per_class,
+        "accuracy": correct / total,
+        "macro_avg": {
+            "precision": math.fsum(precision_values) / size,
+            "recall": math.fsum(recall_values) / size,
+            "f1": math.fsum(f1_values) / size,
+            "support": total,
+        },
+        "micro_avg": {
+            "precision": micro_precision,
+            "recall": micro_recall,
+            "f1": micro_f1,
+            "support": total,
+        },
+        "weighted_avg": {
+            "precision": weighted(precision_values),
+            "recall": weighted(recall_values),
+            "f1": weighted(f1_values),
+            "support": total,
+        },
+        "support": total,
+    }
