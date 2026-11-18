@@ -576,3 +576,397 @@ def multiclass_log_loss(
         normalized_true_probability = clipped[target] / total
         losses.append(-math.log(normalized_true_probability))
     return math.fsum(losses) / len(losses)
+
+
+def top_k_accuracy_score(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Iterable[Real]],
+    *,
+    labels: Iterable[Any],
+    k: int = 2,
+) -> float:
+    """Return the fraction of samples whose true class is among the top k.
+
+    Probability columns follow labels. Equal scores are resolved by the
+    supplied class order, making the result deterministic.
+    """
+    targets, classes, rows = _multiclass_probability_inputs(
+        y_true, y_probability, labels
+    )
+    if type(k) is not int or not 1 <= k <= len(classes):
+        raise ValueError("k must be an integer between 1 and the number of classes")
+    correct = 0
+    for target, row in zip(targets, rows):
+        ranked = sorted(range(len(classes)), key=lambda index: (-row[index], index))
+        correct += int(target in ranked[:k])
+    return correct / len(rows)
+
+
+def fbeta_score(
+    y_true: Iterable[Any],
+    y_pred: Iterable[Any],
+    *,
+    beta: Real = 1.0,
+    positive_label: Any = 1,
+    zero_division: int = 0,
+) -> float:
+    """Return the binary F-beta score with configurable precision/recall weight."""
+    if isinstance(beta, bool) or not isinstance(beta, Real):
+        raise ValueError("beta must be a positive finite real number")
+    try:
+        value = float(beta)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError("beta must be a positive finite real number") from None
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError("beta must be a positive finite real number")
+    if type(zero_division) is not int or zero_division not in (0, 1):
+        raise ValueError("zero_division must be 0 or 1")
+
+    metrics = classification_metrics(
+        y_true, y_pred, positive_label=positive_label, zero_division=zero_division
+    )
+    precision = metrics["precision"]
+    recall = metrics["recall"]
+    if value >= 1.0:
+        inverse_beta_squared = (1.0 / value) ** 2
+        denominator = precision + inverse_beta_squared * recall
+        if denominator == 0:
+            return float(zero_division)
+        return (
+            (1.0 + inverse_beta_squared) * precision * recall / denominator
+        )
+    beta_squared = value * value
+    denominator = beta_squared * precision + recall
+    if denominator == 0:
+        return float(zero_division)
+    return (1.0 + beta_squared) * precision * recall / denominator
+
+
+def classification_report(
+    y_true: Iterable[Any],
+    y_pred: Iterable[Any],
+    *,
+    labels: Iterable[Any] | None = None,
+    zero_division: int = 0,
+) -> dict[str, Any]:
+    """Return per-class precision/recall/F1 plus macro, micro, and weighted averages.
+
+    If labels is omitted, class order follows first appearance across y_true
+    and y_pred. Explicit labels can retain absent classes in the report.
+    """
+    if type(zero_division) is not int or zero_division not in (0, 1):
+        raise ValueError("zero_division must be 0 or 1")
+    actual = list(y_true)
+    predicted = list(y_pred)
+    if not actual:
+        raise ValueError("y_true and y_pred must not be empty")
+    if len(actual) != len(predicted):
+        raise ValueError("y_true and y_pred must have equal lengths")
+
+    if labels is None:
+        class_labels = []
+        seen = set()
+        try:
+            for value in actual + predicted:
+                if value not in seen:
+                    seen.add(value)
+                    class_labels.append(value)
+        except TypeError:
+            raise ValueError("class labels must be hashable") from None
+    else:
+        class_labels = list(labels)
+        if not class_labels:
+            raise ValueError("labels must not be empty")
+        seen = set()
+        try:
+            for value in class_labels:
+                if value in seen:
+                    raise ValueError("labels must not contain duplicates")
+                seen.add(value)
+        except TypeError:
+            raise ValueError("class labels must be hashable") from None
+
+    matrix = confusion_matrix(actual, predicted, labels=class_labels)
+    size = len(matrix)
+    supports = [sum(row) for row in matrix]
+    predicted_counts = [
+        sum(matrix[row][column] for row in range(size))
+        for column in range(size)
+    ]
+    per_class = {}
+    precision_values = []
+    recall_values = []
+    f1_values = []
+    for index, label in enumerate(class_labels):
+        true_positive = matrix[index][index]
+        false_positive = predicted_counts[index] - true_positive
+        false_negative = supports[index] - true_positive
+        precision_denominator = true_positive + false_positive
+        recall_denominator = true_positive + false_negative
+        f1_denominator = 2 * true_positive + false_positive + false_negative
+        precision = (
+            true_positive / precision_denominator
+            if precision_denominator else float(zero_division)
+        )
+        recall = (
+            true_positive / recall_denominator
+            if recall_denominator else float(zero_division)
+        )
+        f1 = (
+            2 * true_positive / f1_denominator
+            if f1_denominator else float(zero_division)
+        )
+        per_class[label] = {
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "support": supports[index],
+        }
+        precision_values.append(precision)
+        recall_values.append(recall)
+        f1_values.append(f1)
+
+    total = len(actual)
+    correct = sum(matrix[index][index] for index in range(size))
+    micro_false_positive = sum(predicted_counts) - correct
+    micro_false_negative = total - correct
+    micro_precision_denominator = correct + micro_false_positive
+    micro_recall_denominator = correct + micro_false_negative
+    micro_precision = (
+        correct / micro_precision_denominator
+        if micro_precision_denominator else float(zero_division)
+    )
+    micro_recall = (
+        correct / micro_recall_denominator
+        if micro_recall_denominator else float(zero_division)
+    )
+    micro_f1_denominator = 2 * correct + micro_false_positive + micro_false_negative
+    micro_f1 = (
+        2 * correct / micro_f1_denominator
+        if micro_f1_denominator else float(zero_division)
+    )
+    weighted = lambda values: math.fsum(
+        value * support for value, support in zip(values, supports)
+    ) / total
+    return {
+        "labels": tuple(class_labels),
+        "per_class": per_class,
+        "accuracy": correct / total,
+        "macro_avg": {
+            "precision": math.fsum(precision_values) / size,
+            "recall": math.fsum(recall_values) / size,
+            "f1": math.fsum(f1_values) / size,
+            "support": total,
+        },
+        "micro_avg": {
+            "precision": micro_precision,
+            "recall": micro_recall,
+            "f1": micro_f1,
+            "support": total,
+        },
+        "weighted_avg": {
+            "precision": weighted(precision_values),
+            "recall": weighted(recall_values),
+            "f1": weighted(f1_values),
+            "support": total,
+        },
+        "support": total,
+    }
+
+
+def cohen_kappa_score(
+    y_true: Iterable[Any],
+    y_pred: Iterable[Any],
+    *,
+    labels: Iterable[Any] | None = None,
+    weights: str | None = None,
+) -> float:
+    """Return Cohen's kappa, optionally with linear or quadratic disagreement weights.
+
+    A degenerate expected-disagreement denominator raises ValueError rather
+    than returning a misleading finite coefficient.
+    """
+    if weights not in (None, "linear", "quadratic"):
+        raise ValueError("weights must be None, 'linear', or 'quadratic'")
+    matrix = confusion_matrix(y_true, y_pred, labels=labels)
+    size = len(matrix)
+    if size < 2:
+        raise ValueError("Cohen kappa requires at least two classes")
+    total = sum(sum(row) for row in matrix)
+    if total == 0:
+        raise ValueError("y_true and y_pred must not be empty")
+    row_totals = [sum(row) for row in matrix]
+    column_totals = [
+        sum(matrix[row][column] for row in range(size))
+        for column in range(size)
+    ]
+
+    observed_disagreement = 0.0
+    expected_disagreement = 0.0
+    for row in range(size):
+        for column in range(size):
+            distance = abs(row - column) / (size - 1)
+            if weights == "linear":
+                disagreement = distance
+            elif weights == "quadratic":
+                disagreement = distance * distance
+            else:
+                disagreement = float(row != column)
+            observed_disagreement += disagreement * matrix[row][column]
+            expected_disagreement += (
+                disagreement * row_totals[row] * column_totals[column] / total
+            )
+    if expected_disagreement == 0:
+        raise ValueError("Cohen kappa is undefined when expected disagreement is zero")
+    return 1.0 - observed_disagreement / expected_disagreement
+
+
+def _multilabel_indicator_rows(
+    y_true: Iterable[Iterable[Any]],
+    y_pred: Iterable[Iterable[Any]],
+) -> tuple[list[list[int]], list[list[int]]]:
+    """Validate aligned binary indicator matrices."""
+    try:
+        actual = [list(row) for row in y_true]
+        predicted = [list(row) for row in y_pred]
+    except TypeError:
+        raise ValueError("multilabel inputs must be iterable rows") from None
+    if not actual or len(actual) != len(predicted):
+        raise ValueError("multilabel inputs must have equal non-zero row counts")
+    width = len(actual[0])
+    if width == 0:
+        raise ValueError("multilabel inputs must contain at least one label column")
+    if any(len(row) != width for row in actual + predicted):
+        raise ValueError("all multilabel rows must have equal lengths")
+    converted = []
+    for rows in (actual, predicted):
+        normalized = []
+        for row in rows:
+            values = []
+            for value in row:
+                if value not in (0, 1, False, True):
+                    raise ValueError("multilabel indicators must contain only 0, 1, or booleans")
+                values.append(int(value))
+            normalized.append(values)
+        converted.append(normalized)
+    return converted[0], converted[1]
+
+
+def multilabel_confusion_matrix(
+    y_true: Iterable[Iterable[Any]],
+    y_pred: Iterable[Iterable[Any]],
+) -> list[list[list[int]]]:
+    """Return one 2x2 (TN, FP; FN, TP) confusion matrix per label column."""
+    actual, predicted = _multilabel_indicator_rows(y_true, y_pred)
+    width = len(actual[0])
+    matrices = []
+    for column in range(width):
+        true_negative = false_positive = false_negative = true_positive = 0
+        for actual_row, predicted_row in zip(actual, predicted):
+            truth = actual_row[column]
+            estimate = predicted_row[column]
+            if truth and estimate:
+                true_positive += 1
+            elif estimate:
+                false_positive += 1
+            elif truth:
+                false_negative += 1
+            else:
+                true_negative += 1
+        matrices.append([
+            [true_negative, false_positive],
+            [false_negative, true_positive],
+        ])
+    return matrices
+
+
+def hamming_loss(
+    y_true: Iterable[Iterable[Any]],
+    y_pred: Iterable[Iterable[Any]],
+) -> float:
+    """Return the fraction of incorrect label indicators in multilabel data."""
+    actual, predicted = _multilabel_indicator_rows(y_true, y_pred)
+    mismatches = sum(
+        left != right
+        for actual_row, predicted_row in zip(actual, predicted)
+        for left, right in zip(actual_row, predicted_row)
+    )
+    return mismatches / (len(actual) * len(actual[0]))
+
+
+def multiclass_roc_auc_score(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Iterable[Real]],
+    *,
+    labels: Iterable[Any],
+    average: str = "macro",
+) -> float:
+    """Return multiclass ROC AUC using one-vs-rest class scores.
+
+    average may be "macro", "weighted", or "micro". Every class must have
+    positive and negative examples for macro/weighted averaging.
+    """
+    if average not in ("macro", "weighted", "micro"):
+        raise ValueError("average must be 'macro', 'weighted', or 'micro'")
+    actual, classes, rows = _multiclass_probability_inputs(
+        y_true, y_probability, labels
+    )
+    if average == "micro":
+        flattened_true = [
+            int(target == column)
+            for target in actual
+            for column in range(len(classes))
+        ]
+        flattened_score = [value for row in rows for value in row]
+        return roc_auc_score(flattened_true, flattened_score, positive_label=1)
+
+    scores = []
+    supports = []
+    for column, label in enumerate(classes):
+        binary_true = [value == column for value in actual]
+        binary_score = [row[column] for row in rows]
+        scores.append(roc_auc_score(binary_true, binary_score, positive_label=True))
+        supports.append(sum(binary_true))
+    if average == "macro":
+        return math.fsum(scores) / len(scores)
+    return math.fsum(
+        score * support for score, support in zip(scores, supports)
+    ) / sum(supports)
+
+
+def multiclass_average_precision_score(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Iterable[Real]],
+    *,
+    labels: Iterable[Any],
+    average: str = "macro",
+) -> float:
+    """Return multiclass average precision with macro, weighted, or micro averaging."""
+    if average not in ("macro", "weighted", "micro"):
+        raise ValueError("average must be 'macro', 'weighted', or 'micro'")
+    actual, classes, rows = _multiclass_probability_inputs(
+        y_true, y_probability, labels
+    )
+    if average == "micro":
+        flattened_true = [
+            int(target == column)
+            for target in actual
+            for column in range(len(classes))
+        ]
+        flattened_score = [value for row in rows for value in row]
+        return average_precision_score(flattened_true, flattened_score, positive_label=1)
+
+    scores = []
+    supports = []
+    for column, label in enumerate(classes):
+        binary_true = [value == column for value in actual]
+        binary_score = [row[column] for row in rows]
+        scores.append(
+            average_precision_score(binary_true, binary_score, positive_label=True)
+        )
+        supports.append(sum(binary_true))
+    if average == "macro":
+        return math.fsum(scores) / len(scores)
+    return math.fsum(
+        score * support for score, support in zip(scores, supports)
+    ) / sum(supports)

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added top-k accuracy, F-beta, per-class classification reports, weighted Cohen kappa, multilabel confusion matrices and Hamming loss, plus macro/weighted/micro multiclass ROC AUC and average precision with regression tests and an executable example.
+
+
 - Added tie-preserving quantile calibration bins, multiclass top-label and classwise reliability curves, ECE/MCE/RMSCE summaries, and multiclass Brier/log losses with regression tests and a runnable GaussianNB example.
 
 
