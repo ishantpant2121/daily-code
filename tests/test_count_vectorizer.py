@@ -101,6 +101,13 @@ class CountVectorizerValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             CountVectorizer().fit("cat dog")
 
+    def test_failed_refit_invalidates_the_previous_vocabulary(self):
+        vectorizer = CountVectorizer().fit(["cat dog"])
+        with self.assertRaises(ValueError):
+            vectorizer.fit(["a"])
+        with self.assertRaises(RuntimeError):
+            vectorizer.transform(["cat"])
+
     def test_rejects_non_string_documents(self):
         with self.assertRaises(ValueError):
             CountVectorizer().fit(["cat", 3])
