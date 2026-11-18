@@ -884,3 +884,43 @@ def hamming_loss(
         for left, right in zip(actual_row, predicted_row)
     )
     return mismatches / (len(actual) * len(actual[0]))
+
+
+def multiclass_roc_auc_score(
+    y_true: Iterable[Any],
+    y_probability: Iterable[Iterable[Real]],
+    *,
+    labels: Iterable[Any],
+    average: str = "macro",
+) -> float:
+    """Return multiclass ROC AUC using one-vs-rest class scores.
+
+    average may be "macro", "weighted", or "micro". Every class must have
+    positive and negative examples for macro/weighted averaging.
+    """
+    if average not in ("macro", "weighted", "micro"):
+        raise ValueError("average must be 'macro', 'weighted', or 'micro'")
+    actual, classes, rows = _multiclass_probability_inputs(
+        y_true, y_probability, labels
+    )
+    if average == "micro":
+        flattened_true = [
+            int(target == column)
+            for target in actual
+            for column in range(len(classes))
+        ]
+        flattened_score = [value for row in rows for value in row]
+        return roc_auc_score(flattened_true, flattened_score, positive_label=1)
+
+    scores = []
+    supports = []
+    for column, label in enumerate(classes):
+        binary_true = [value == label for value in actual]
+        binary_score = [row[column] for row in rows]
+        scores.append(roc_auc_score(binary_true, binary_score, positive_label=True))
+        supports.append(sum(binary_true))
+    if average == "macro":
+        return math.fsum(scores) / len(scores)
+    return math.fsum(
+        score * support for score, support in zip(scores, supports)
+    ) / sum(supports)
