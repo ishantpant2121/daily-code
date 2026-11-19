@@ -159,7 +159,7 @@ def paired_bootstrap_score_difference(
         raise ValueError("confidence_level must be a finite number between zero and one")
     try:
         level = float(confidence_level)
-    except (OverflowError, TypeTypeError, ValueError):
+    except (OverflowError, TypeError, ValueError):
         raise ValueError("confidence_level must be a finite number between zero and one") from None
     if not math.isfinite(level) or not 0.0 < level < 1.0:
         raise ValueError("confidence_level must be a finite number between zero and one")
