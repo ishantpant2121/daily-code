@@ -18,6 +18,21 @@ class MatrixAlgorithmsTests(unittest.TestCase):
         )
         self.assertEqual(matrix_multiply([[2]], [[3]]), [[6]])
 
+    def test_recovers_finite_dot_products_when_float_products_overflow(self):
+        # The exact products exceed float range, but their sum is representable.
+        self.assertEqual(
+            matrix_multiply([[1e308, 1e308]], [[1e308], [-1e308]]),
+            [[0.0]],
+        )
+        self.assertEqual(
+            matrix_multiply([[1e308, 1e308, 1e308]], [[1e308], [-1e308], [1.0]]),
+            [[1e308]],
+        )
+
+    def test_rejects_exact_dot_products_outside_float_range(self):
+        with self.assertRaisesRegex(ValueError, "finite float range"):
+            matrix_multiply([[1e308]], [[1e308]])
+
     def test_returns_clockwise_spiral_order(self):
         self.assertEqual(
             spiral_order([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
