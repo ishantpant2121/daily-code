@@ -234,3 +234,24 @@ jobs:
           PY
       - name: Run text vectorization example
         run: python examples/text_vectorization_demo.py
+
+      - name: Smoke-test paired model comparison
+        run: |
+          cd /tmp
+          python - <<'PY'
+          from paired_model_comparison import paired_bootstrap_score_difference, paired_permutation_test
+
+          actual = [0, 1, 0, 1]
+          model_a = [0, 1, 0, 1]
+          model_b = [1, 0, 1, 0]
+          bootstrap = paired_bootstrap_score_difference(
+              actual, model_a, model_b, n_bootstrap=50, random_state=3
+          )
+          permutation = paired_permutation_test(
+              actual, model_a, model_b, n_permutations=50, random_state=3
+          )
+          assert bootstrap.observed_difference == 1.0
+          assert bootstrap.lower_bound <= bootstrap.upper_bound
+          assert 0.0 < permutation.p_value <= 1.0
+          PY
+          python "$GITHUB_WORKSPACE/examples/paired_model_comparison.py"
