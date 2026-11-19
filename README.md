@@ -350,6 +350,7 @@ fitting, so the original objects remain unchanged.
 - **clustering_metrics.py** — per-sample and mean silhouette coefficients, adjusted Rand agreement, and Davies-Bouldin cluster separation.
 - **feature_importance.py** — model-agnostic permutation importance for an already-fitted estimator, with repeat-level score drops, means, and standard deviations.
 - **model_diagnostics.py** — learning curves, validation curves (including `step__parameter` pipeline parameters), and paired bootstrap confidence intervals for a fitted model's evaluation score.
+- **paired_model_comparison.py** — paired bootstrap confidence intervals and prediction-swap permutation tests for comparing two models on the same held-out rows.
 - **calibration_metrics.py** — binary uniform/quantile reliability bins, multiclass top-label and classwise reliability curves, and ECE/MCE/RMSCE summaries.
 - **regression_metrics.py** — MAE, MSE, RMSE, median/max error, R-squared, explained variance, and logarithmic regression losses. See the [regression metrics guide](docs/regression_metrics.md) for numerical behavior.
 
@@ -364,9 +365,10 @@ python examples/probability_calibration.py
 python examples/multiclass_probability_calibration.py
 python examples/advanced_classification_metrics.py
 python examples/text_vectorization_demo.py
+python examples/paired_model_comparison.py
 python examples/gradient_boosting_regression.py
 ~~~
 
-Focused guides: [advanced validation](docs/advanced_validation.md), [clustering metrics](docs/clustering_metrics.md), [model inspection](docs/model_inspection.md), and [probability calibration](docs/probability_calibration.md), [classification metrics](docs/classification_metrics.md), plus [regression trees and boosting](docs/regression_trees.md).
+Focused guides: [advanced validation](docs/advanced_validation.md), [clustering metrics](docs/clustering_metrics.md), [model inspection](docs/model_inspection.md), [paired model comparison](docs/paired_model_comparison.md), and [probability calibration](docs/probability_calibration.md), [classification metrics](docs/classification_metrics.md), plus [regression trees and boosting](docs/regression_trees.md).
 
-These are educational, dependency-free implementations. Silhouette scoring is quadratic in sample count; permutation importance performs one model scoring pass per feature and repeat; bootstrap intervals condition on the already-fitted model. Use held-out data for model inspection, and choose time- or group-aware validation whenever observations are not independent.
+These are educational, dependency-free implementations. Silhouette scoring is quadratic in sample count; permutation importance performs one model scoring pass per feature and repeat; bootstrap intervals condition on the already-fitted model. Paired model-comparison utilities use fixed predictions and assume the models were evaluated on the same held-out rows. Use held-out data for model inspection, and choose time- or group-aware validation whenever observations are not independent.
