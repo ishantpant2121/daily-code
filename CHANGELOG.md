@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added paired bootstrap confidence intervals and paired prediction-swap permutation tests for fixed model predictions, with built-in and custom scorers, tests, docs, and a runnable example.
+
 - Added top-k accuracy, F-beta, per-class classification reports, weighted Cohen kappa, multilabel confusion matrices and Hamming loss, plus macro/weighted/micro multiclass ROC AUC and average precision with regression tests and an executable example.
 
 
