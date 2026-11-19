@@ -43,6 +43,7 @@ py-modules = [
     "logistic_regression",
     "matrix_algorithms",
     "model_diagnostics",
+    "paired_model_comparison",
     "model_selection",
     "pathfinding",
     "pipeline",
