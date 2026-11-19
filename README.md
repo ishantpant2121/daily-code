@@ -81,6 +81,9 @@ The repository includes focused, dependency-free implementations:
   selection and merging, and disjoint-set operations.
 - **Strings and matrices** — KMP and Rabin-Karp matching, prefix and Z functions,
   finite-real matrix multiplication, transpose, clockwise rotation, and spiral traversal.
+Matrix multiplication uses an exact-rational fallback when float products or
+summation overflow, allowing cancellation to yield a representable result; truly
+out-of-range products raise `ValueError`.
 
 Graph algorithms that operate on undirected graphs expect symmetric adjacency
 lists. Dijkstra requires finite non-negative real weights; Bellman-Ford and

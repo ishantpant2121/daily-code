@@ -1,6 +1,7 @@
 """Basic matrix transformations and multiplication using Python sequences."""
 
 import math
+from fractions import Fraction
 from numbers import Real
 from typing import Sequence, TypeVar
 
@@ -37,6 +38,35 @@ def _numeric_matrix(matrix: Sequence[Sequence[Real]], name: str) -> list[list[fl
     return result
 
 
+def _dot_product(left: Sequence[float], right: Sequence[float]) -> float:
+    """Compute a dot product, falling back to exact rational products on overflow.
+
+    Float multiplication or summation can overflow even when large positive and
+    negative terms cancel to a representable result. The fallback is deliberately
+    exceptional-path only; it computes the exact sum of the input float values'
+    products before rounding once to the nearest float.
+    """
+    products = [a * b for a, b in zip(left, right)]
+    try:
+        value = math.fsum(products)
+    except (OverflowError, ValueError):
+        value = None
+    if value is not None and math.isfinite(value):
+        return value
+
+    exact = sum(
+        (Fraction.from_float(a) * Fraction.from_float(b) for a, b in zip(left, right)),
+        Fraction(),
+    )
+    try:
+        value = float(exact)
+    except OverflowError:
+        raise ValueError("matrix product exceeds finite float range") from None
+    if not math.isfinite(value):
+        raise ValueError("matrix product exceeds finite float range")
+    return value
+
+
 def transpose(matrix: Sequence[Sequence[T]]) -> list[list[T]]:
     """Return a transposed copy of a rectangular matrix."""
     rows, columns = _rectangular(matrix)
@@ -58,15 +88,10 @@ def matrix_multiply(
     for row in range(first_rows):
         output_row = []
         for column in range(second_columns):
-            try:
-                value = math.fsum(
-                    left[row][index] * right[index][column]
-                    for index in range(first_columns)
-                )
-            except OverflowError:
-                raise ValueError("matrix product exceeds finite float range") from None
-            if not math.isfinite(value):
-                raise ValueError("matrix product exceeds finite float range")
+            value = _dot_product(
+                left[row],
+                [right[index][column] for index in range(first_columns)],
+            )
             output_row.append(value)
         result.append(output_row)
     return result
