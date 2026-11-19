@@ -254,4 +254,4 @@ jobs:
           assert bootstrap.lower_bound <= bootstrap.upper_bound
           assert 0.0 < permutation.p_value <= 1.0
           PY
-          python "$GITHUB_WORKSPACE/examples/paired_model_comparison.py"
+          python "$GITHUB_WORKSPACE/examples/paired_model_comparison_demo.py"
