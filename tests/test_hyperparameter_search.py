@@ -164,6 +164,31 @@ class GridSearchCVTests(unittest.TestCase):
         self.assertEqual(search.best_params_, {"tree__max_depth": 1})
         self.assertEqual(search.predict(features), labels)
 
+    def test_failed_refit_clears_previous_best_results(self):
+        from decision_tree import DecisionTreeClassifier
+        from hyperparameter_search import GridSearchCV
+
+        features = [[0], [1], [2], [3]]
+        labels = [0, 0, 1, 1]
+        search = GridSearchCV(
+            DecisionTreeClassifier(),
+            {"max_depth": [1]},
+            cv=2,
+            scoring="accuracy",
+        ).fit(features, labels)
+        self.assertTrue(search._fitted)
+        self.assertTrue(hasattr(search, "best_params_"))
+
+        search.param_grid = {"unknown_parameter": [1]}
+        with self.assertRaises(ValueError):
+            search.fit(features, labels)
+
+        self.assertFalse(search._fitted)
+        self.assertFalse(hasattr(search, "best_params_"))
+        self.assertFalse(hasattr(search, "cv_results_"))
+        with self.assertRaisesRegex(RuntimeError, "fit must be called"):
+            search.predict(features)
+
     def test_requires_fit_and_rejects_unknown_parameters(self):
         from decision_tree import DecisionTreeClassifier
         from hyperparameter_search import GridSearchCV
@@ -199,6 +224,45 @@ class RandomizedSearchCVTests(unittest.TestCase):
         self.assertEqual(len({tuple(sorted(item.items())) for item in first.sampled_params_}), 4)
         self.assertEqual(first.best_params_, second.best_params_)
         self.assertEqual(first.best_score_, 1.0)
+
+    def test_failed_refit_clears_previous_results(self):
+        from hyperparameter_search import RandomizedSearchCV
+
+        class ToggleEstimator:
+            def __init__(self, marker=1, fail=False):
+                self.marker = marker
+                self.fail = fail
+
+            def fit(self, features, labels):
+                if self.fail:
+                    raise RuntimeError("intentional refit failure")
+                return self
+
+            def predict(self, features):
+                return [self.marker] * len(features)
+
+        features = [[0], [1], [2], [3]]
+        labels = [0, 0, 1, 1]
+        search = RandomizedSearchCV(
+            ToggleEstimator(),
+            {"marker": [1]},
+            n_iter=1,
+            cv=2,
+            scoring=lambda fitted, x, y: 1.0,
+            random_state=3,
+        ).fit(features, labels)
+        self.assertTrue(search._fitted)
+        self.assertEqual(search.predict(features), [1, 1, 1, 1])
+
+        search.estimator.fail = True
+        with self.assertRaisesRegex(RuntimeError, "intentional refit failure"):
+            search.fit(features, labels)
+
+        self.assertFalse(search._fitted)
+        self.assertFalse(hasattr(search, "best_params_"))
+        self.assertFalse(hasattr(search, "cv_results_"))
+        with self.assertRaisesRegex(RuntimeError, "fit must be called"):
+            search.predict(features)
 
     def test_rejects_invalid_iteration_count(self):
         from decision_tree import DecisionTreeClassifier
