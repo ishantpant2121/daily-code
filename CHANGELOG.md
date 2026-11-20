@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Publish hyperparameter-search results only after the selected estimator's full-data refit succeeds; keep failed attempts unfitted and free of partial or stale result attributes.
+
 
 - Added paired bootstrap confidence intervals and paired prediction-swap permutation tests for fixed model predictions, with built-in and custom scorers, tests, docs, and a runnable example.
 
