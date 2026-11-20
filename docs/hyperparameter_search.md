@@ -69,3 +69,13 @@ candidate dictionaries as it is iterated.
   Python implementation and version.
 - This API does not yet accept continuous distributions or objects exposing
   an `rvs` method.
+
+## Refit after failure
+
+Both `GridSearchCV` and `RandomizedSearchCV` clear the results from their previous
+successful fit before starting a new `fit()` attempt. If the new attempt fails
+while validating inputs, evaluating candidates, or fitting an estimator, the search
+object remains unfitted and its previous best-estimator/results attributes are no
+longer available. This prevents a stale model from being mistaken for the result
+of the failed refit. A complete successful fit is required before calling
+`predict()`, `score()`, or `predict_proba()` again.

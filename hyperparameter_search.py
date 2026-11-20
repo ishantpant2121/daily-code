@@ -149,6 +149,25 @@ class GridSearchCV:
         self.random_state = random_state
         self._fitted = False
 
+    def _reset_fit_state(self) -> None:
+        """Clear previous fit results before attempting a new fit.
+
+        A failed refit must not leave a previously fitted model available as if
+        it were the result of the current fit attempt.
+        """
+        self._fitted = False
+        for name in (
+            "cv_results_",
+            "best_index_",
+            "best_params_",
+            "best_score_",
+            "best_estimator_",
+            "n_splits_",
+            "sampled_params_",
+        ):
+            if hasattr(self, name):
+                delattr(self, name)
+
     def _fit_candidates(
         self,
         features: list[list[Any]],
@@ -200,6 +219,7 @@ class GridSearchCV:
         return self
 
     def fit(self, features: Iterable[Iterable[Any]], labels: Iterable[Any]) -> "GridSearchCV":
+        self._reset_fit_state()
         from model_selection import _feature_rows
 
         matrix = _feature_rows(features)
@@ -263,6 +283,7 @@ class RandomizedSearchCV(GridSearchCV):
         self.n_iter = n_iter
 
     def fit(self, features: Iterable[Iterable[Any]], labels: Iterable[Any]) -> "RandomizedSearchCV":
+        self._reset_fit_state()
         from model_selection import _feature_rows
 
         matrix = _feature_rows(features)
