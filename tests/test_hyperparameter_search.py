@@ -6,6 +6,19 @@ from unittest.mock import patch
 from hyperparameter_search import ParameterGrid, ParameterSampler
 
 
+class FailOnFullDataRefitEstimator:
+    def __init__(self, marker=1):
+        self.marker = marker
+
+    def fit(self, features, labels):
+        if len(features) == 4:
+            raise RuntimeError("full-data refit failed")
+        return self
+
+    def predict(self, features):
+        return [self.marker] * len(features)
+
+
 class ParameterGridTests(unittest.TestCase):
     def test_enumerates_cartesian_product_in_sorted_key_order(self):
         grid = ParameterGrid({"max_depth": [1, 2], "criterion": ["gini", "entropy"]})
@@ -189,6 +202,29 @@ class GridSearchCVTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "fit must be called"):
             search.predict(features)
 
+    def test_failed_final_refit_does_not_publish_partial_results(self):
+        from hyperparameter_search import GridSearchCV
+
+        features = [[0], [1], [2], [3]]
+        labels = [0, 0, 1, 1]
+        search = GridSearchCV(
+            FailOnFullDataRefitEstimator(),
+            {"marker": [1, 2]},
+            cv=2,
+            scoring=lambda fitted, x, y: 1.0,
+        )
+        with self.assertRaisesRegex(RuntimeError, "full-data refit failed"):
+            search.fit(features, labels)
+
+        self.assertFalse(search._fitted)
+        for attribute in (
+            "cv_results_", "best_index_", "best_params_", "best_score_",
+            "best_estimator_", "n_splits_",
+        ):
+            self.assertFalse(hasattr(search, attribute), attribute)
+        with self.assertRaisesRegex(RuntimeError, "fit must be called"):
+            search.predict(features)
+
     def test_requires_fit_and_rejects_unknown_parameters(self):
         from decision_tree import DecisionTreeClassifier
         from hyperparameter_search import GridSearchCV
@@ -261,6 +297,31 @@ class RandomizedSearchCVTests(unittest.TestCase):
         self.assertFalse(search._fitted)
         self.assertFalse(hasattr(search, "best_params_"))
         self.assertFalse(hasattr(search, "cv_results_"))
+        with self.assertRaisesRegex(RuntimeError, "fit must be called"):
+            search.predict(features)
+
+    def test_failed_final_refit_does_not_publish_sampled_results(self):
+        from hyperparameter_search import RandomizedSearchCV
+
+        features = [[0], [1], [2], [3]]
+        labels = [0, 0, 1, 1]
+        search = RandomizedSearchCV(
+            FailOnFullDataRefitEstimator(),
+            {"marker": [1, 2]},
+            n_iter=1,
+            cv=2,
+            scoring=lambda fitted, x, y: 1.0,
+            random_state=4,
+        )
+        with self.assertRaisesRegex(RuntimeError, "full-data refit failed"):
+            search.fit(features, labels)
+
+        self.assertFalse(search._fitted)
+        for attribute in (
+            "cv_results_", "best_index_", "best_params_", "best_score_",
+            "best_estimator_", "n_splits_", "sampled_params_",
+        ):
+            self.assertFalse(hasattr(search, attribute), attribute)
         with self.assertRaisesRegex(RuntimeError, "fit must be called"):
             search.predict(features)
 
