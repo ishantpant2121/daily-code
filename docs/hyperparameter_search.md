@@ -72,10 +72,15 @@ candidate dictionaries as it is iterated.
 
 ## Refit after failure
 
-Both `GridSearchCV` and `RandomizedSearchCV` clear the results from their previous
-successful fit before starting a new `fit()` attempt. If the new attempt fails
-while validating inputs, evaluating candidates, or fitting an estimator, the search
-object remains unfitted and its previous best-estimator/results attributes are no
-longer available. This prevents a stale model from being mistaken for the result
-of the failed refit. A complete successful fit is required before calling
-`predict()`, `score()`, or `predict_proba()` again.
+Both `GridSearchCV` and `RandomizedSearchCV` clear results from their previous
+successful fit at the start of a new `fit()` attempt. Candidate scores and the
+selected parameters are kept local while cross-validation runs. The selected
+estimator is then refitted on the full input data; search-result attributes are
+published only after this final refit succeeds.
+
+If input validation, candidate evaluation, parameter assignment, or the final
+full-data refit raises an exception, the search object remains unfitted and
+does not expose results from either the previous fit or the incomplete attempt.
+`RandomizedSearchCV` likewise exposes `sampled_params_` only after a successful
+fit. A complete successful fit is required before calling `predict()`,
+`score()`, or `predict_proba()` again.
