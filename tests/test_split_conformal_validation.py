@@ -6,7 +6,7 @@ from split_conformal import SplitConformalRegressor, empirical_coverage, mean_in
 
 class SplitConformalValidationTests(unittest.TestCase):
     def test_rejects_invalid_alpha(self):
-        for alpha in (0, 1, -0.1, 1.1, True, "0.1", math.nan, math.inf):
+        for alpha in (0, 1, -0.1, 1.1, True, "0.1", math.nan, math.inf, 10**1000):
             with self.subTest(alpha=alpha), self.assertRaises(ValueError):
                 SplitConformalRegressor(alpha)
 
