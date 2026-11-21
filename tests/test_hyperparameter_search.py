@@ -210,7 +210,7 @@ class GridSearchCVTests(unittest.TestCase):
         features = [[0], [1], [2], [3]]
         labels = [0, 0, 1, 1]
         search = GridSearchCV(
-            FailOnFullDataRefitEstimator(),
+            FailOnFullDataRefitEstimator(fail_on_full_data=True),
             {"marker": [1, 2]},
             cv=2,
             scoring=lambda fitted, x, y: 1.0,
