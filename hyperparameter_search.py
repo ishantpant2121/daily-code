@@ -204,16 +204,22 @@ class GridSearchCV:
                 best_index = index
                 best_score = mean_score
 
-        self.cv_results_ = {
+        cv_results = {
             key: [row[key] for row in rows]
             for key in rows[0]
         }
+        best_params = candidates[best_index].copy()
+        best_estimator = deepcopy(self.estimator)
+        _set_estimator_params(best_estimator, best_params)
+        best_estimator.fit(features, labels)
+
+        # Publish search results only after the final full-data refit succeeds.
+        # If that refit raises, the object remains in the cleared unfitted state.
+        self.cv_results_ = cv_results
         self.best_index_ = best_index
-        self.best_params_ = candidates[best_index].copy()
+        self.best_params_ = best_params
         self.best_score_ = best_score
-        self.best_estimator_ = deepcopy(self.estimator)
-        _set_estimator_params(self.best_estimator_, self.best_params_)
-        self.best_estimator_.fit(features, labels)
+        self.best_estimator_ = best_estimator
         self.n_splits_ = self.cv
         self._fitted = True
         return self
@@ -293,6 +299,8 @@ class RandomizedSearchCV(GridSearchCV):
         candidates = list(
             ParameterSampler(self.param_grid, self.n_iter, random_state=self.random_state)
         )
-        self.sampled_params_ = [candidate.copy() for candidate in candidates]
         self._fit_candidates(matrix, target, candidates)
+        # Expose the sampled candidates only after candidate evaluation and the
+        # final full-data refit both succeed. Failed fits stay fully unfitted.
+        self.sampled_params_ = [candidate.copy() for candidate in candidates]
         return self
