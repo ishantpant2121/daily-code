@@ -7,11 +7,12 @@ from hyperparameter_search import ParameterGrid, ParameterSampler
 
 
 class FailOnFullDataRefitEstimator:
-    def __init__(self, marker=1):
+    def __init__(self, marker=1, fail_on_full_data=False):
         self.marker = marker
+        self.fail_on_full_data = fail_on_full_data
 
     def fit(self, features, labels):
-        if len(features) == 4:
+        if self.fail_on_full_data and len(features) == 4:
             raise RuntimeError("full-data refit failed")
         return self
 
@@ -199,6 +200,7 @@ class GridSearchCVTests(unittest.TestCase):
         self.assertFalse(search._fitted)
         self.assertFalse(hasattr(search, "best_params_"))
         self.assertFalse(hasattr(search, "cv_results_"))
+        self.assertFalse(hasattr(search, "sampled_params_"))
         with self.assertRaisesRegex(RuntimeError, "fit must be called"):
             search.predict(features)
 
@@ -312,7 +314,10 @@ class RandomizedSearchCVTests(unittest.TestCase):
             cv=2,
             scoring=lambda fitted, x, y: 1.0,
             random_state=4,
-        )
+        ).fit(features, labels)
+        self.assertTrue(hasattr(search, "sampled_params_"))
+
+        search.estimator.fail_on_full_data = True
         with self.assertRaisesRegex(RuntimeError, "full-data refit failed"):
             search.fit(features, labels)
 

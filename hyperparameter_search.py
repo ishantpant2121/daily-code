@@ -299,6 +299,8 @@ class RandomizedSearchCV(GridSearchCV):
         candidates = list(
             ParameterSampler(self.param_grid, self.n_iter, random_state=self.random_state)
         )
-        self.sampled_params_ = [candidate.copy() for candidate in candidates]
         self._fit_candidates(matrix, target, candidates)
+        # Expose the sampled candidates only after candidate evaluation and the
+        # final full-data refit both succeed. Failed fits stay fully unfitted.
+        self.sampled_params_ = [candidate.copy() for candidate in candidates]
         return self
