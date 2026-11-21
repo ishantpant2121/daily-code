@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Added split conformal regression intervals with finite-sample rank correction, coverage/width helpers, validation and numeric-edge tests, documentation, and a runnable example.
+
 - Publish hyperparameter-search results only after the selected estimator's full-data refit succeeds; keep failed attempts unfitted and free of partial or stale result attributes.
 
 

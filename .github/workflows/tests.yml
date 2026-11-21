@@ -255,3 +255,18 @@ jobs:
           assert 0.0 < permutation.p_value <= 1.0
           PY
           python "$GITHUB_WORKSPACE/examples/paired_model_comparison_demo.py"
+
+      - name: Smoke-test installed split conformal regression
+        run: |
+          cd /tmp
+          python - <<'PY'
+          from split_conformal import SplitConformalRegressor, empirical_coverage, mean_interval_width
+
+          conformal = SplitConformalRegressor(alpha=0.2).fit([1, 2, 3, 4, 5], [0] * 5)
+          intervals = conformal.predict([10, -2])
+          assert conformal.rank_ == 5 and conformal.quantile_ == 5.0
+          assert intervals == [(5.0, 15.0), (-7.0, 3.0)]
+          assert empirical_coverage([10, 0], intervals) == 1.0
+          assert mean_interval_width(intervals) == 10.0
+          PY
+          python "$GITHUB_WORKSPACE/examples/split_conformal_regression.py"
