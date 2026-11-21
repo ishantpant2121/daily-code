@@ -88,7 +88,7 @@ class SplitConformalRegressor:
             raise ValueError("alpha must be a real number strictly between 0 and 1")
         try:
             value = float(alpha)
-        except (OverflowError, TypeTypeError, ValueError):
+        except (OverflowError, TypeError, ValueError):
             raise ValueError("alpha must be a real number strictly between 0 and 1") from None
         if not math.isfinite(value) or not 0.0 < value < 1.0:
             raise ValueError("alpha must be a real number strictly between 0 and 1")
