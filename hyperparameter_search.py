@@ -121,10 +121,11 @@ def _set_estimator_params(estimator: Any, parameters: Mapping[str, Any]) -> None
 class GridSearchCV:
     """Exhaustively select estimator parameters using cross-validation.
 
-    Each candidate and each fold receives a fresh deep copy. The winning
-    estimator is then fitted once on the complete input dataset. Parameter
-    names may address direct estimator attributes or Pipeline steps using
-    the step__attribute naming convention.
+    Each candidate and each fold receives a fresh deep copy. Integer cv
+    creates built-in folds; explicit reusable fold iterables are also accepted.
+    All candidates share the same folds. The winning estimator is then fitted
+    once on the complete input dataset. Parameter names may address direct
+    estimator attributes or Pipeline steps using step__attribute notation.
     """
 
     def __init__(
@@ -270,7 +271,7 @@ class RandomizedSearchCV(GridSearchCV):
         estimator: Any,
         param_distributions: Mapping[str, Sequence[Any]],
         n_iter: int = 10,
-        cv: int = 5,
+        cv: int | Iterable[Any] = 5,
         *,
         scoring: Any = None,
         stratified: bool = False,
