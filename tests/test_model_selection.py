@@ -5,7 +5,7 @@ import unittest
 from advanced_splitting import PredefinedSplit
 from decision_tree import DecisionTreeClassifier
 from logistic_regression import LogisticRegression
-from model_selection import cross_val_score
+from model_selection import cross_val_predict, cross_val_score, cross_validate
 from pipeline import Pipeline
 from preprocessing import StandardScaler
 
