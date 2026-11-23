@@ -160,7 +160,7 @@ class ExplicitFoldTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exactly once"):
             cross_val_predict(
                 DecisionTreeClassifier(), self.features, self.labels,
-                cv=[([0, 1, 2, 3], [4, 5]), ([0, 1, 4, 5], [4, 5])],
+                cv=[([0, 1, 2, 3], [4, 5]), ([0, 2, 3, 4], [1, 5])],
             )
         with self.assertRaisesRegex(ValueError, "cover every sample"):
             cross_val_predict(
