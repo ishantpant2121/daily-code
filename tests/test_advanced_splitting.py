@@ -1,6 +1,6 @@
 import unittest
 
-from advanced_splitting import (GroupKFold, GroupShuffleSplit, LeaveOneOut, RepeatedKFold, RepeatedStratifiedKFold, StratifiedShuffleSplit, TimeSeriesSplit)
+from advanced_splitting import (GroupKFold, GroupShuffleSplit, LeaveOneOut, PredefinedSplit, RepeatedKFold, RepeatedStratifiedKFold, StratifiedShuffleSplit, TimeSeriesSplit)
 
 
 class TimeSeriesSplitTests(unittest.TestCase):
@@ -162,6 +162,29 @@ class StratifiedShuffleSplitTests(unittest.TestCase):
         for size in (0, 1.0, True, 10):
             with self.subTest(size=size), self.assertRaises(ValueError):
                 StratifiedShuffleSplit(test_size=size).split([0, 0, 1, 1])
+
+
+
+class PredefinedSplitTests(unittest.TestCase):
+    def test_fixed_folds_keep_minus_one_samples_in_every_training_set(self):
+        splitter = PredefinedSplit([-1, 0, 1, 0, 1])
+        self.assertEqual(
+            splitter.split(5),
+            [
+                ([0, 2, 4], [1, 3]),
+                ([0, 1, 3], [2, 4]),
+            ],
+        )
+        self.assertEqual(len(splitter), 2)
+        self.assertEqual(list(splitter), splitter.split())
+
+    def test_rejects_invalid_fold_ids_and_sample_counts(self):
+        for assignments in ([], [-1, -1], [0, 2], [0, 0], [0, True], [-2, 0]):
+            with self.subTest(assignments=assignments), self.assertRaises(ValueError):
+                PredefinedSplit(assignments)
+        splitter = PredefinedSplit([0, 1, 0, 1])
+        with self.assertRaises(ValueError):
+            splitter.split(3)
 
 
 if __name__ == "__main__":
