@@ -191,8 +191,8 @@ print(cross_val_score(
 
 Cross-validation clones the supplied estimator for each fold. When a pipeline is
 used, imputation and scaling are fitted independently on each training fold,
-then applied to that fold's validation rows. Built-in scorers are accuracy and
-balanced accuracy; a custom scorer receives the fitted estimator, validation
+then applied to that fold's validation rows. Built-in scorers include accuracy,
+balanced accuracy, R-squared, and negative regression-error metrics; a custom scorer receives the fitted estimator, validation
 features, and validation labels. You can also pass a reusable iterable of
 (train, validation) index pairs or a PredefinedSplit instance as cv to keep
 temporal, group-aware, or manually specified folds identical across model
