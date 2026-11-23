@@ -2,10 +2,74 @@
 
 import math
 import random
-from collections.abc import Sequence
-from typing import Any
+from numbers import Integral
+from collections.abc import Iterable, Sequence
+from typing import Any, Iterator
 
 from data_splitting import k_fold_indices, stratified_k_fold_indices
+
+
+class PredefinedSplit:
+    """Use fixed fold assignments for repeatable cross-validation.
+
+    Each non-negative value in test_fold identifies one validation fold.
+    The special value -1 marks samples that remain in training in every
+    fold. The object is iterable so it can be passed directly as cv to
+    the model-selection helpers.
+    """
+
+    def __init__(self, test_fold: Iterable[int]) -> None:
+        try:
+            assignments = list(test_fold)
+        except TypeError:
+            raise ValueError("test_fold must be an iterable of integer fold IDs") from None
+        if not assignments:
+            raise ValueError("test_fold must not be empty")
+        normalized = []
+        for value in assignments:
+            if isinstance(value, bool) or not isinstance(value, Integral):
+                raise ValueError("test_fold values must be integers")
+            value = int(value)
+            if value < -1:
+                raise ValueError("test_fold values must be -1 or non-negative")
+            normalized.append(value)
+        folds = sorted(set(value for value in normalized if value >= 0))
+        if not folds or folds != list(range(len(folds))):
+            raise ValueError("test fold IDs must be contiguous starting at zero")
+        if any(not any(value != fold for value in normalized) for fold in folds):
+            raise ValueError("each fold must leave at least one training sample")
+        self.test_fold = tuple(normalized)
+        self.n_splits = len(folds)
+
+    def split(self, n_samples: int | None = None) -> list[tuple[list[int], list[int]]]:
+        """Return the predefined train/test indices, optionally checking size."""
+        if n_samples is not None and (
+            type(n_samples) is not int or n_samples != len(self.test_fold)
+        ):
+            raise ValueError("n_samples must match the predefined fold assignments")
+        result = []
+        for fold in range(self.n_splits):
+            train = [
+                index for index, value in enumerate(self.test_fold)
+                if value == -1 or value != fold
+            ]
+            test = [
+                index for index, value in enumerate(self.test_fold)
+                if value == fold
+            ]
+            result.append((train, test))
+        return result
+
+    def __iter__(self) -> Iterator[tuple[list[int], list[int]]]:
+        return iter(self.split())
+
+    @property
+    def n_samples(self) -> int:
+        """Number of samples represented by the fixed assignments."""
+        return len(self.test_fold)
+
+    def __len__(self) -> int:
+        return self.n_splits
 
 
 class TimeSeriesSplit:

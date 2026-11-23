@@ -121,17 +121,18 @@ def _set_estimator_params(estimator: Any, parameters: Mapping[str, Any]) -> None
 class GridSearchCV:
     """Exhaustively select estimator parameters using cross-validation.
 
-    Each candidate and each fold receives a fresh deep copy. The winning
-    estimator is then fitted once on the complete input dataset. Parameter
-    names may address direct estimator attributes or Pipeline steps using
-    the step__attribute naming convention.
+    Each candidate and each fold receives a fresh deep copy. Integer cv
+    creates built-in folds; explicit reusable fold iterables are also accepted.
+    All candidates share the same folds. The winning estimator is then fitted
+    once on the complete input dataset. Parameter names may address direct
+    estimator attributes or Pipeline steps using step__attribute notation.
     """
 
     def __init__(
         self,
         estimator: Any,
         param_grid: Mapping[str, Sequence[Any]],
-        cv: int = 5,
+        cv: int | Iterable[Any] = 5,
         *,
         scoring: Any = None,
         stratified: bool = False,
@@ -175,10 +176,15 @@ class GridSearchCV:
         candidates: list[dict[str, Any]],
     ) -> "GridSearchCV":
         import math
-        from model_selection import _mean_and_std, cross_val_score
+        from model_selection import _cv_splits, _mean_and_std, cross_val_score
 
         if not candidates:
             raise ValueError("parameter search requires at least one candidate")
+        cv_random_state = self.random_state if type(self.cv) is int else None
+        cv_folds = _cv_splits(
+            self.cv, len(features), labels, stratified=self.stratified,
+            shuffle=self.shuffle, random_state=cv_random_state,
+        )
         rows = []
         best_index = 0
         best_score = -math.inf
@@ -189,11 +195,11 @@ class GridSearchCV:
                 candidate,
                 features,
                 labels,
-                self.cv,
+                cv_folds,
                 scoring=self.scoring,
-                stratified=self.stratified,
-                shuffle=self.shuffle,
-                random_state=self.random_state,
+                stratified=False,
+                shuffle=False,
+                random_state=None,
             )
             mean_score, std_score = _mean_and_std(scores)
             row = {"params": parameters.copy(), "mean_test_score": mean_score,
@@ -220,7 +226,7 @@ class GridSearchCV:
         self.best_params_ = best_params
         self.best_score_ = best_score
         self.best_estimator_ = best_estimator
-        self.n_splits_ = self.cv
+        self.n_splits_ = len(cv_folds)
         self._fitted = True
         return self
 
@@ -266,7 +272,7 @@ class RandomizedSearchCV(GridSearchCV):
         estimator: Any,
         param_distributions: Mapping[str, Sequence[Any]],
         n_iter: int = 10,
-        cv: int = 5,
+        cv: int | Iterable[Any] = 5,
         *,
         scoring: Any = None,
         stratified: bool = False,

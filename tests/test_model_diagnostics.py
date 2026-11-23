@@ -1,5 +1,6 @@
 import unittest
 
+from advanced_splitting import PredefinedSplit
 from model_diagnostics import bootstrap_score, learning_curve, validation_curve
 
 
@@ -40,6 +41,17 @@ class LearningCurveTests(unittest.TestCase):
         self.assertTrue(all(len(scores) == 4 for scores in result["test_scores"]))
         self.assertTrue(all(0.0 <= score <= 1.0 for scores in result["train_scores"] for score in scores))
 
+
+    def test_learning_curve_accepts_predefined_folds(self):
+        result = learning_curve(
+            ThresholdClassifier(), self.features, self.labels,
+            train_sizes=[3, 6],
+            cv=PredefinedSplit([0, 0, 1, 1, 2, 2, 3, 3]),
+            scoring="accuracy",
+        )
+        self.assertEqual(result["train_sizes"], [3, 6])
+        self.assertTrue(all(len(scores) == 4 for scores in result["test_scores"]))
+
     def test_rejects_invalid_sizes_and_mismatched_data(self):
         for sizes in ([], [0], [1.1], [True], [0.5, 0.4], [1, 100]):
             with self.subTest(sizes=sizes), self.assertRaises(ValueError):
@@ -72,6 +84,17 @@ class ValidationCurveTests(unittest.TestCase):
         self.assertEqual(len(result["train_scores"]), 3)
         self.assertTrue(all(len(scores) == 4 for scores in result["test_scores"]))
         self.assertEqual(model.threshold, 0.5)
+
+
+    def test_validation_curve_accepts_predefined_folds(self):
+        result = validation_curve(
+            ThresholdClassifier(), self.features, self.labels,
+            "threshold", [0.4, 0.6],
+            cv=PredefinedSplit([0, 0, 1, 1, 2, 2, 3, 3]),
+            scoring="accuracy",
+        )
+        self.assertEqual(result["param_range"], [0.4, 0.6])
+        self.assertTrue(all(len(scores) == 4 for scores in result["test_scores"]))
 
     def test_supports_nested_pipeline_parameters_and_one_shot_inputs(self):
         class Wrapper:

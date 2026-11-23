@@ -2,9 +2,10 @@
 
 import unittest
 
+from advanced_splitting import PredefinedSplit
 from decision_tree import DecisionTreeClassifier
 from logistic_regression import LogisticRegression
-from model_selection import cross_val_score
+from model_selection import cross_val_predict, cross_val_score, cross_validate
 from pipeline import Pipeline
 from preprocessing import StandardScaler
 
@@ -125,6 +126,78 @@ class CrossValScoreTests(unittest.TestCase):
                 scoring=lambda fitted, x, y: float("nan"),
             )
 
+
+
+class ExplicitFoldTests(unittest.TestCase):
+    def setUp(self):
+        self.features = [[0], [1], [2], [10], [11], [12]]
+        self.labels = [0, 0, 0, 1, 1, 1]
+        self.folds = PredefinedSplit([0, 0, 1, 1, 2, 2]).split()
+
+    def test_cross_val_score_accepts_one_shot_explicit_folds(self):
+        scores = cross_val_score(
+            DecisionTreeClassifier(), self.features, self.labels,
+            cv=(fold for fold in self.folds), scoring="accuracy",
+        )
+        self.assertEqual(scores, [1.0, 1.0, 1.0])
+
+    def test_cross_validate_uses_explicit_folds(self):
+        result = cross_validate(
+            DecisionTreeClassifier(), self.features, self.labels,
+            cv=self.folds, scoring="accuracy",
+            return_train_score=True, return_estimator=True,
+        )
+        self.assertEqual(result["test_score"], [1.0, 1.0, 1.0])
+        self.assertEqual(result["train_score"], [1.0, 1.0, 1.0])
+        self.assertEqual(len(result["estimator"]), 3)
+
+    def test_cross_val_predict_preserves_original_order_and_requires_partition(self):
+        predictions = cross_val_predict(
+            DecisionTreeClassifier(), self.features, self.labels,
+            cv=PredefinedSplit([0, 0, 1, 1, 2, 2]),
+        )
+        self.assertEqual(predictions, self.labels)
+        with self.assertRaisesRegex(ValueError, "exactly once"):
+            cross_val_predict(
+                DecisionTreeClassifier(), self.features, self.labels,
+                cv=[([0, 1, 2, 3], [4, 5]), ([0, 2, 3, 4], [1, 5])],
+            )
+        with self.assertRaisesRegex(ValueError, "cover every sample"):
+            cross_val_predict(
+                DecisionTreeClassifier(), self.features, self.labels,
+                cv=[([2, 3, 4, 5], [0, 1])],
+            )
+
+
+    def test_predefined_split_requires_matching_dataset_size(self):
+        with self.assertRaisesRegex(ValueError, "sample count"):
+            cross_val_score(
+                DecisionTreeClassifier(), self.features, self.labels,
+                cv=PredefinedSplit([0, 1]), scoring="accuracy",
+            )
+
+    def test_rejects_malformed_explicit_folds_and_conflicting_options(self):
+        invalid = (
+            [],
+            [([], [0])],
+            [([0, 0], [1])],
+            [([0, 1], [1, 2])],
+            [([0, 6], [1])],
+            [([0], [1.5])],
+            [([0], [1, 1])],
+            [([0],)],
+        )
+        for folds in invalid:
+            with self.subTest(folds=folds), self.assertRaises(ValueError):
+                cross_val_score(
+                    DecisionTreeClassifier(), self.features, self.labels,
+                    cv=folds, scoring="accuracy",
+                )
+        with self.assertRaises(ValueError):
+            cross_val_score(
+                DecisionTreeClassifier(), self.features, self.labels,
+                cv=self.folds, shuffle=True,
+            )
 
 if __name__ == "__main__":
     unittest.main()

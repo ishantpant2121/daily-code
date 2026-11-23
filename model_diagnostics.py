@@ -7,8 +7,7 @@ from dataclasses import dataclass
 from numbers import Real
 from typing import Any, Callable
 
-from data_splitting import k_fold_indices, stratified_k_fold_indices
-from model_selection import _feature_rows, _mean_and_std, _score_estimator, cross_validate
+from model_selection import _cv_splits, _feature_rows, _mean_and_std, _score_estimator, cross_validate
 
 
 def _train_size_counts(
@@ -49,7 +48,7 @@ def learning_curve(
     labels: Iterable[Any],
     *,
     train_sizes: Iterable[int | float] = (0.25, 0.5, 0.75, 1.0),
-    cv: int = 5,
+    cv: int | Iterable[Any] = 5,
     scoring: str | Callable[..., float] | None = None,
     stratified: bool = False,
     shuffle: bool = False,
@@ -70,18 +69,15 @@ def learning_curve(
     sample_count = len(matrix)
     if len(target) != sample_count:
         raise ValueError("features and labels must have equal sample counts")
-    if type(cv) is not int or not 2 <= cv <= sample_count:
-        raise ValueError("cv must be an integer between 2 and the sample count")
     if type(stratified) is not bool or type(shuffle) is not bool:
         raise ValueError("stratified and shuffle must be booleans")
     if random_state is not None and type(random_state) is not int:
         raise ValueError("random_state must be an integer or None")
     if not callable(getattr(estimator, "fit", None)):
         raise ValueError("estimator must implement fit")
-    folds = (
-        stratified_k_fold_indices(target, n_splits=cv, shuffle=shuffle, random_state=random_state)
-        if stratified
-        else k_fold_indices(sample_count, n_splits=cv, shuffle=shuffle, random_state=random_state)
+    folds = _cv_splits(
+        cv, sample_count, target, stratified=stratified, shuffle=shuffle,
+        random_state=random_state,
     )
     sizes = _train_size_counts(train_sizes, min(len(train) for train, _ in folds))
     train_scores: list[list[float]] = [[] for _ in sizes]
@@ -131,7 +127,7 @@ def validation_curve(
     param_name: str,
     param_range: Iterable[Any],
     *,
-    cv: int = 5,
+    cv: int | Iterable[Any] = 5,
     scoring: str | Callable[..., float] | None = None,
     stratified: bool = False,
     shuffle: bool = False,
@@ -153,6 +149,10 @@ def validation_curve(
         raise ValueError("param_range must contain at least one value")
     if len(matrix) != len(target):
         raise ValueError("features and labels must have equal sample counts")
+    folds = _cv_splits(
+        cv, len(matrix), target, stratified=stratified, shuffle=shuffle,
+        random_state=random_state,
+    )
     if not callable(getattr(estimator, "fit", None)):
         raise ValueError("estimator must implement fit")
 
@@ -165,11 +165,11 @@ def validation_curve(
             candidate,
             matrix,
             target,
-            cv=cv,
+            cv=folds,
             scoring=scoring,
-            stratified=stratified,
-            shuffle=shuffle,
-            random_state=random_state,
+            stratified=False,
+            shuffle=False,
+            random_state=None,
             return_train_score=True,
         )
         train_scores.append(result["train_score"])
