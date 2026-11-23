@@ -168,6 +168,14 @@ class ExplicitFoldTests(unittest.TestCase):
                 cv=[([2, 3, 4, 5], [0, 1])],
             )
 
+
+    def test_predefined_split_requires_matching_dataset_size(self):
+        with self.assertRaisesRegex(ValueError, "sample count"):
+            cross_val_score(
+                DecisionTreeClassifier(), self.features, self.labels,
+                cv=PredefinedSplit([0, 1]), scoring="accuracy",
+            )
+
     def test_rejects_malformed_explicit_folds_and_conflicting_options(self):
         invalid = (
             [],
