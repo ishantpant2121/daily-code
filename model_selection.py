@@ -2,7 +2,7 @@
 
 import math
 from copy import deepcopy
-from numbers import Real
+from numbers import Integral, Real
 from typing import Any, Callable, Iterable
 
 from classification_metrics import balanced_accuracy_score
@@ -30,6 +30,82 @@ def _feature_rows(values: Iterable[Iterable[Any]]) -> list[list[Any]]:
         raise ValueError("all feature rows must have equal lengths")
     return rows
 
+
+def _cv_splits(
+    cv: int | Iterable[Any],
+    sample_count: int,
+    labels: list[Any],
+    *,
+    stratified: bool = False,
+    shuffle: bool = False,
+    random_state: int | None = None,
+) -> list[tuple[list[int], list[int]]]:
+    """Build or validate reusable train/validation index pairs.
+
+    Integer cv uses the built-in K-fold splitters. Other iterables are treated
+    as explicit folds and must contain non-empty, disjoint, in-range indices.
+    Explicit folds cannot be combined with the integer-split options.
+    """
+    if type(stratified) is not bool or type(shuffle) is not bool:
+        raise ValueError("stratified and shuffle must be booleans")
+    if random_state is not None and type(random_state) is not int:
+        raise ValueError("random_state must be an integer or None")
+    if type(cv) is int:
+        if not 2 <= cv <= sample_count:
+            raise ValueError("cv must be an integer between 2 and the sample count")
+        raw_folds = (
+            stratified_k_fold_indices(
+                labels, n_splits=cv, shuffle=shuffle, random_state=random_state
+            )
+            if stratified
+            else k_fold_indices(
+                sample_count, n_splits=cv, shuffle=shuffle, random_state=random_state
+            )
+        )
+    else:
+        if stratified or shuffle or random_state is not None:
+            raise ValueError("split options apply only when cv is an integer")
+        try:
+            raw_folds = list(cv)
+        except TypeError:
+            raise ValueError("cv must be an integer or iterable of train/test splits") from None
+        if not raw_folds:
+            raise ValueError("cv must contain at least one split")
+
+    normalized: list[tuple[list[int], list[int]]] = []
+    for fold_number, fold in enumerate(raw_folds):
+        try:
+            pair = list(fold)
+        except TypeError:
+            raise ValueError(f"cv split {fold_number} must contain train and test indices") from None
+        if len(pair) != 2:
+            raise ValueError(f"cv split {fold_number} must contain exactly two index lists")
+        current = []
+        for name, indices in zip(("train", "test"), pair):
+            try:
+                values = list(indices)
+            except TypeError:
+                raise ValueError(f"cv split {fold_number} {name} indices must be iterable") from None
+            if not values:
+                raise ValueError(f"cv split {fold_number} {name} indices must not be empty")
+            checked = []
+            for value in values:
+                if isinstance(value, bool) or not isinstance(value, Integral):
+                    raise ValueError("cv indices must be integers")
+                index = int(value)
+                if not 0 <= index < sample_count:
+                    raise ValueError("cv indices must be within the sample range")
+                checked.append(index)
+            if len(set(checked)) != len(checked):
+                raise ValueError(f"cv split {fold_number} contains duplicate {name} indices")
+            current.append(checked)
+        train_indices, test_indices = current
+        if set(train_indices) & set(test_indices):
+            raise ValueError(f"cv split {fold_number} train and test indices must be disjoint")
+        normalized.append((train_indices, test_indices))
+    if not normalized:
+        raise ValueError("cv must contain at least one split")
+    return normalized
 
 
 def _score_predictions(scoring: str, actual: list[Any], predicted: list[Any]) -> float:
@@ -74,7 +150,7 @@ def cross_val_score(
     estimator: Any,
     features: Iterable[Iterable[Any]],
     labels: Iterable[Any],
-    cv: int = 5,
+    cv: int | Iterable[Any] = 5,
     *,
     scoring: str | Scorer | None = None,
     stratified: bool = False,
@@ -95,8 +171,6 @@ def cross_val_score(
     sample_count = len(matrix)
     if len(target) != sample_count:
         raise ValueError("features and labels must have equal sample counts")
-    if type(cv) is not int or not 2 <= cv <= sample_count:
-        raise ValueError("cv must be an integer between 2 and the sample count")
     if type(stratified) is not bool or type(shuffle) is not bool:
         raise ValueError("stratified and shuffle must be booleans")
     if random_state is not None and type(random_state) is not int:
@@ -113,14 +187,10 @@ def cross_val_score(
     if not callable(getattr(estimator, "fit", None)):
         raise ValueError("estimator must implement fit")
 
-    if stratified:
-        folds = stratified_k_fold_indices(
-            target, n_splits=cv, shuffle=shuffle, random_state=random_state
-        )
-    else:
-        folds = k_fold_indices(
-            sample_count, n_splits=cv, shuffle=shuffle, random_state=random_state
-        )
+    folds = _cv_splits(
+        cv, sample_count, target, stratified=stratified, shuffle=shuffle,
+        random_state=random_state,
+    )
 
     scores = []
     for train_indices, validation_indices in folds:
@@ -190,7 +260,7 @@ def cross_validate(
     estimator: Any,
     features: Iterable[Iterable[Any]],
     labels: Iterable[Any],
-    cv: int = 5,
+    cv: int | Iterable[Any] = 5,
     *,
     scoring: str | Scorer | None = None,
     stratified: bool = False,
@@ -213,8 +283,6 @@ def cross_validate(
     sample_count = len(matrix)
     if len(target) != sample_count:
         raise ValueError("features and labels must have equal sample counts")
-    if type(cv) is not int or not 2 <= cv <= sample_count:
-        raise ValueError("cv must be an integer between 2 and the sample count")
     if type(stratified) is not bool or type(shuffle) is not bool:
         raise ValueError("stratified and shuffle must be booleans")
     if type(return_train_score) is not bool or type(return_estimator) is not bool:
@@ -233,10 +301,9 @@ def cross_validate(
     if not callable(getattr(estimator, "fit", None)):
         raise ValueError("estimator must implement fit")
 
-    folds = (
-        stratified_k_fold_indices(target, n_splits=cv, shuffle=shuffle, random_state=random_state)
-        if stratified
-        else k_fold_indices(sample_count, n_splits=cv, shuffle=shuffle, random_state=random_state)
+    folds = _cv_splits(
+        cv, sample_count, target, stratified=stratified, shuffle=shuffle,
+        random_state=random_state,
     )
     results: dict[str, list[Any]] = {"fit_time": [], "score_time": [], "test_score": []}
     if return_train_score:
@@ -270,7 +337,7 @@ def cross_val_predict(
     estimator: Any,
     features: Iterable[Iterable[Any]],
     labels: Iterable[Any],
-    cv: int = 5,
+    cv: int | Iterable[Any] = 5,
     *,
     method: str = "predict",
     stratified: bool = False,
@@ -289,8 +356,6 @@ def cross_val_predict(
     sample_count = len(matrix)
     if len(target) != sample_count:
         raise ValueError("features and labels must have equal sample counts")
-    if type(cv) is not int or not 2 <= cv <= sample_count:
-        raise ValueError("cv must be an integer between 2 and the sample count")
     if not isinstance(method, str) or not method or method.startswith("_"):
         raise ValueError("method must be a public estimator method name")
     if type(stratified) is not bool or type(shuffle) is not bool:
@@ -300,10 +365,9 @@ def cross_val_predict(
     if not callable(getattr(estimator, "fit", None)):
         raise ValueError("estimator must implement fit")
 
-    folds = (
-        stratified_k_fold_indices(target, n_splits=cv, shuffle=shuffle, random_state=random_state)
-        if stratified
-        else k_fold_indices(sample_count, n_splits=cv, shuffle=shuffle, random_state=random_state)
+    folds = _cv_splits(
+        cv, sample_count, target, stratified=stratified, shuffle=shuffle,
+        random_state=random_state,
     )
     output: list[Any] = [None] * sample_count
     assigned = [False] * sample_count
