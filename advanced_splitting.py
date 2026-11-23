@@ -63,6 +63,11 @@ class PredefinedSplit:
     def __iter__(self) -> Iterator[tuple[list[int], list[int]]]:
         return iter(self.split())
 
+    @property
+    def n_samples(self) -> int:
+        """Number of samples represented by the fixed assignments."""
+        return len(self.test_fold)
+
     def __len__(self) -> int:
         return self.n_splits
 
