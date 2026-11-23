@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 from advanced_splitting import PredefinedSplit
 
-from hyperparameter_search import ParameterGrid, ParameterSampler
+from decision_tree import DecisionTreeClassifier
+from hyperparameter_search import GridSearchCV, ParameterGrid, ParameterSampler, RandomizedSearchCV
 
 
 class FailOnFullDataRefitEstimator:
