@@ -3,6 +3,8 @@
 import unittest
 from unittest.mock import patch
 
+from advanced_splitting import PredefinedSplit
+
 from hyperparameter_search import ParameterGrid, ParameterSampler
 
 
@@ -178,6 +180,22 @@ class GridSearchCVTests(unittest.TestCase):
         self.assertEqual(search.best_params_, {"tree__max_depth": 1})
         self.assertEqual(search.predict(features), labels)
 
+
+    def test_reuses_explicit_folds_for_each_candidate(self):
+        features = [[0], [1], [2], [3], [10], [11]]
+        labels = [0, 0, 0, 1, 1, 1]
+        folds = PredefinedSplit([0, 0, 1, 1, 2, 2])
+        search = GridSearchCV(
+            DecisionTreeClassifier(),
+            {"max_depth": [1, 2]},
+            cv=(fold for fold in folds),
+            scoring="accuracy",
+        ).fit(features, labels)
+        self.assertEqual(search.n_splits_, 3)
+        self.assertEqual(search.cv_results_["mean_test_score"], [1.0, 1.0])
+        for fold in range(3):
+            self.assertEqual(search.cv_results_[f"split{fold}_test_score"], [1.0, 1.0])
+
     def test_failed_refit_clears_previous_best_results(self):
         from decision_tree import DecisionTreeClassifier
         from hyperparameter_search import GridSearchCV
@@ -262,6 +280,21 @@ class RandomizedSearchCVTests(unittest.TestCase):
         self.assertEqual(len({tuple(sorted(item.items())) for item in first.sampled_params_}), 4)
         self.assertEqual(first.best_params_, second.best_params_)
         self.assertEqual(first.best_score_, 1.0)
+
+
+    def test_accepts_predefined_cv_iterable(self):
+        features = [[0], [1], [2], [3], [10], [11]]
+        labels = [0, 0, 0, 1, 1, 1]
+        search = RandomizedSearchCV(
+            DecisionTreeClassifier(),
+            {"max_depth": [1, 2]},
+            n_iter=2,
+            cv=iter(PredefinedSplit([0, 0, 1, 1, 2, 2])),
+            scoring="accuracy",
+            random_state=8,
+        ).fit(features, labels)
+        self.assertEqual(search.n_splits_, 3)
+        self.assertEqual(len(search.cv_results_["mean_test_score"]), 2)
 
     def test_failed_refit_clears_previous_results(self):
         from hyperparameter_search import RandomizedSearchCV
