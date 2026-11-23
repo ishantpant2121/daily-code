@@ -162,9 +162,11 @@ def cross_val_score(
     Supported built-in scorers are accuracy, balanced_accuracy, r2,
     neg_mean_squared_error, neg_mean_absolute_error, and
     neg_root_mean_squared_error. A custom scorer receives
-    (fitted_estimator, X_validation, y_validation). When
-    scoring is None, the estimator's score method is used. Set stratified=True
-    for classification targets; every class must contain at least cv samples.
+    (fitted_estimator, X_validation, y_validation). When scoring is None,
+    the estimator's score method is used. Integer cv generates folds; an
+    iterable cv supplies explicit (train, validation) index pairs. With integer
+    cv, set stratified=True for classification targets; each class must contain
+    at least cv samples. Explicit folds must be non-empty, disjoint, and in range.
     """
     matrix = _feature_rows(features)
     target = list(labels)
@@ -273,8 +275,10 @@ def cross_validate(
 
     The result always contains fit_time, score_time and test_score.
     Optional flags add training scores and the fitted estimator from each fold.
-    score_time measures held-out scoring only; optional training-score work is
-    excluded. Timing values are descriptive and should not be compared across machines.
+    Integer cv generates folds; an iterable supplies explicit train/validation
+    index pairs. score_time measures held-out scoring only; optional
+    training-score work is excluded. Timing values are descriptive and should
+    not be compared across machines.
     """
     import time
 
@@ -346,10 +350,12 @@ def cross_val_predict(
 ) -> list[Any]:
     """Return one out-of-fold prediction for every sample in original order.
 
-    Every input row must appear in exactly one validation fold. This helper is
-    useful for diagnostic plots and stacking; its pooled predictions are not
-    a substitute for the mean of fold-level cross-validation scores when fold
-    sizes differ or the metric is non-decomposable.
+    Integer cv generates folds, or an iterable can provide explicit
+    train/validation index pairs. Every input row must appear in exactly one
+    validation fold. This helper is useful for diagnostic plots and stacking;
+    its pooled predictions are not a substitute for the mean of fold-level
+    cross-validation scores when fold sizes differ or the metric is
+    non-decomposable.
     """
     matrix = _feature_rows(features)
     target = list(labels)
