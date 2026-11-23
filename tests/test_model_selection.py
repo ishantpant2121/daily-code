@@ -130,7 +130,7 @@ class CrossValScoreTests(unittest.TestCase):
 
 class ExplicitFoldTests(unittest.TestCase):
     def setUp(self):
-        self.features = [[0], [1], [2], [3], [10], [11]]
+        self.features = [[0], [1], [2], [10], [11], [12]]
         self.labels = [0, 0, 0, 1, 1, 1]
         self.folds = PredefinedSplit([0, 0, 1, 1, 2, 2]).split()
 
