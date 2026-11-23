@@ -183,7 +183,7 @@ class GridSearchCVTests(unittest.TestCase):
 
 
     def test_reuses_explicit_folds_for_each_candidate(self):
-        features = [[0], [1], [2], [3], [10], [11]]
+        features = [[0], [1], [2], [10], [11], [12]]
         labels = [0, 0, 0, 1, 1, 1]
         folds = PredefinedSplit([0, 0, 1, 1, 2, 2])
         search = GridSearchCV(
