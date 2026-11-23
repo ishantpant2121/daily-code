@@ -88,6 +88,8 @@ generated folds. This is especially useful for temporal and group-aware splits:
 ```python
 from advanced_splitting import TimeSeriesSplit, GroupKFold
 
+features = [[float(index)] for index in range(12)]
+groups = [index // 2 for index in range(12)]
 time_folds = TimeSeriesSplit(n_splits=3, test_size=2, gap=1).split(len(features))
 group_folds = GroupKFold(n_splits=3).split(len(features), groups)
 ```
