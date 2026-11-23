@@ -65,6 +65,9 @@ def _cv_splits(
     else:
         if stratified or shuffle or random_state is not None:
             raise ValueError("split options apply only when cv is an integer")
+        expected_samples = getattr(cv, "n_samples", None)
+        if expected_samples is not None and expected_samples != sample_count:
+            raise ValueError("cv splitter sample count must match features")
         try:
             raw_folds = list(cv)
         except TypeError:
