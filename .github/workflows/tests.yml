@@ -273,3 +273,6 @@ jobs:
           assert mean_interval_width(intervals) == 10.0
           PY
           python "$GITHUB_WORKSPACE/examples/split_conformal_regression.py"
+
+      - name: Run explicit-fold CV example
+        run: python "$GITHUB_WORKSPACE/examples/predefined_cv.py"
