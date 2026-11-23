@@ -127,7 +127,7 @@ unreachable or returned as infinity.
 - **gradient_boosting_regressor.py** — stage-wise squared-error boosting with shallow regression trees, reproducible stochastic subsampling, staged predictions, and feature importances.
 - **imputation.py** — SimpleImputer with mean, median, most-frequent, and constant strategies, configurable missing sentinels, and empty-column handling.
 - **pipeline.py** — ordered transformer and estimator composition so preprocessing statistics are learned from training data only.
-- **model_selection.py** — reproducible cross-validation scoring with optional stratification, fresh estimator copies per fold, classification scorers, and R-squared/negative regression-error scorers.
+- **model_selection.py** — reproducible cross-validation scoring with optional stratification, fresh estimator copies per fold, classification scorers, and R-squared/negative regression-error scorers. Evaluation, learning/validation curves, and hyperparameter search also accept validated explicit fold iterables
 
 Example classification workflow:
 
@@ -193,8 +193,14 @@ Cross-validation clones the supplied estimator for each fold. When a pipeline is
 used, imputation and scaling are fitted independently on each training fold,
 then applied to that fold's validation rows. Built-in scorers are accuracy and
 balanced accuracy; a custom scorer receives the fitted estimator, validation
-features, and validation labels. These small-data helpers are educational and
-are not intended to replace optimized model-selection libraries.
+features, and validation labels. You can also pass a reusable iterable of
+(train, validation) index pairs or a PredefinedSplit instance as cv to keep
+temporal, group-aware, or manually specified folds identical across model
+evaluation and parameter search. Explicit folds are validated and reused for
+each search candidate. See [advanced validation](docs/advanced_validation.md)
+and [the fixed-fold example](examples/predefined_cv.py). These small-data
+helpers are educational and are not intended to replace optimized
+model-selection libraries.
 
 
 A random forest combines bootstrap samples with per-node feature sampling:
