@@ -3,8 +3,8 @@
 import math
 import random
 from numbers import Integral
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Iterable, Sequence
+from typing import Any, Iterator
 
 from data_splitting import k_fold_indices, stratified_k_fold_indices
 
@@ -18,7 +18,7 @@ class PredefinedSplit:
     the model-selection helpers.
     """
 
-    def __init__(self, test_fold: Sequence[int]) -> None:
+    def __init__(self, test_fold: Iterable[int]) -> None:
         try:
             assignments = list(test_fold)
         except TypeError:
@@ -60,7 +60,7 @@ class PredefinedSplit:
             result.append((train, test))
         return result
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[list[int], list[int]]]:
         return iter(self.split())
 
     def __len__(self) -> int:
