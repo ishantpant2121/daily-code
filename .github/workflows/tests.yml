@@ -32,6 +32,7 @@ jobs:
         run: |
           cd /tmp
           python - <<'PY'
+          from advanced_splitting import PredefinedSplit
           from classification_metrics import average_precision_score, balanced_accuracy_score, brier_score_loss, classification_report, cohen_kappa_score, fbeta_score, hamming_loss, log_loss, matthews_corrcoef, multilabel_confusion_matrix, multiclass_average_precision_score, multiclass_brier_score_loss, multiclass_log_loss, multiclass_roc_auc_score, precision_recall_curve, roc_curve, top_k_accuracy_score
           from decision_tree import DecisionTreeClassifier
           from gaussian_nb import GaussianNB
@@ -91,6 +92,8 @@ jobs:
           assert len(forest.feature_importances_std_) == len(search_x[0])
           assert len(cross_val_predict(DecisionTreeClassifier(), search_x, search_y, cv=3, stratified=True)) == 6
           assert len(cross_validate(DecisionTreeClassifier(), search_x, search_y, cv=3, stratified=True)["test_score"]) == 3
+          fixed_scores = cross_val_score(DecisionTreeClassifier(), search_x, search_y, cv=PredefinedSplit([0, 0, 1, 1, 2, 2]), scoring='accuracy')
+          assert fixed_scores == [1.0, 1.0, 1.0]
           assert GridSearchCV(DecisionTreeClassifier(), {"max_depth": [1, 2]}, cv=3, scoring="accuracy", stratified=True).fit(search_x, search_y).best_score_ == 1.0
           assert RandomizedSearchCV(DecisionTreeClassifier(), {"max_depth": [1, 2]}, n_iter=2, cv=3, scoring="accuracy", stratified=True, random_state=1).fit(search_x, search_y).best_score_ == 1.0
           voter = VotingClassifier([("tree", DecisionTreeClassifier()), ("bayes", GaussianNB())], voting="soft").fit(search_x, search_y)
