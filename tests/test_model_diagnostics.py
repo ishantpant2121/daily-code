@@ -85,6 +85,17 @@ class ValidationCurveTests(unittest.TestCase):
         self.assertTrue(all(len(scores) == 4 for scores in result["test_scores"]))
         self.assertEqual(model.threshold, 0.5)
 
+
+    def test_validation_curve_accepts_predefined_folds(self):
+        result = validation_curve(
+            ThresholdClassifier(), self.features, self.labels,
+            "threshold", [0.4, 0.6],
+            cv=PredefinedSplit([0, 0, 1, 1, 2, 2, 3, 3]),
+            scoring="accuracy",
+        )
+        self.assertEqual(result["param_range"], [0.4, 0.6])
+        self.assertTrue(all(len(scores) == 4 for scores in result["test_scores"]))
+
     def test_supports_nested_pipeline_parameters_and_one_shot_inputs(self):
         class Wrapper:
             def __init__(self):
