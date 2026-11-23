@@ -131,7 +131,7 @@ class GridSearchCV:
         self,
         estimator: Any,
         param_grid: Mapping[str, Sequence[Any]],
-        cv: int = 5,
+        cv: int | Iterable[Any] = 5,
         *,
         scoring: Any = None,
         stratified: bool = False,
@@ -175,10 +175,14 @@ class GridSearchCV:
         candidates: list[dict[str, Any]],
     ) -> "GridSearchCV":
         import math
-        from model_selection import _mean_and_std, cross_val_score
+        from model_selection import _cv_splits, _mean_and_std, cross_val_score
 
         if not candidates:
             raise ValueError("parameter search requires at least one candidate")
+        cv_folds = _cv_splits(
+            self.cv, len(features), labels, stratified=self.stratified,
+            shuffle=self.shuffle, random_state=self.random_state,
+        )
         rows = []
         best_index = 0
         best_score = -math.inf
@@ -189,11 +193,11 @@ class GridSearchCV:
                 candidate,
                 features,
                 labels,
-                self.cv,
+                cv_folds,
                 scoring=self.scoring,
-                stratified=self.stratified,
-                shuffle=self.shuffle,
-                random_state=self.random_state,
+                stratified=False,
+                shuffle=False,
+                random_state=None,
             )
             mean_score, std_score = _mean_and_std(scores)
             row = {"params": parameters.copy(), "mean_test_score": mean_score,
@@ -220,7 +224,7 @@ class GridSearchCV:
         self.best_params_ = best_params
         self.best_score_ = best_score
         self.best_estimator_ = best_estimator
-        self.n_splits_ = self.cv
+        self.n_splits_ = len(cv_folds)
         self._fitted = True
         return self
 
