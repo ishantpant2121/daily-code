@@ -180,9 +180,10 @@ class GridSearchCV:
 
         if not candidates:
             raise ValueError("parameter search requires at least one candidate")
+        cv_random_state = self.random_state if type(self.cv) is int else None
         cv_folds = _cv_splits(
             self.cv, len(features), labels, stratified=self.stratified,
-            shuffle=self.shuffle, random_state=self.random_state,
+            shuffle=self.shuffle, random_state=cv_random_state,
         )
         rows = []
         best_index = 0
