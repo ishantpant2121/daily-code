@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Upgrade GitHub Actions checkout and Python setup steps to Node 24-compatible v7 releases after the runner's Node 20 deprecation warning.
+
 - Preserve validated explicit fold assignments when grid or randomized search receives a one-shot iterator, allowing safe repeated fits without exhausting the CV generator.
 
 - Added reusable explicit cross-validation folds and PredefinedSplit support across scoring, cross-validation, learning/validation curves, and grid/randomized search, with validation of fold indices and prediction coverage.
