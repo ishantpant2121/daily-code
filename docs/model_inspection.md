@@ -8,8 +8,11 @@ interface used in this repository.
 
 `permutation_importance` requires an already-fitted estimator. It measures the
 decrease in a selected score after shuffling one feature column at a time.
-Results include the baseline score, raw score drops for every repeat, and the
-mean and population standard deviation per feature.
+Results include the baseline score, raw score drops for every repeat, the mean
+and population standard deviation per feature, and n_samples_used. Built-in
+scorers cover classification (accuracy, balanced_accuracy) and regression
+(r2, neg_mean_squared_error, neg_mean_absolute_error, and
+neg_root_mean_squared_error); a custom scorer can be supplied as a callable.
 
 ```python
 from feature_importance import permutation_importance
@@ -23,6 +26,27 @@ result = permutation_importance(
     random_state=7,
 )
 print(result.importances_mean)
+```
+
+For larger evaluation datasets, max_samples accepts either an integer row
+count or a fraction in (0, 1]. Fractions are rounded up to at least one row.
+One deterministic subset is selected and reused for the baseline and all
+permutations, and its size is returned as n_samples_used. The same API works
+with regression estimators:
+
+```python
+from feature_importance import permutation_importance
+
+result = permutation_importance(
+    fitted_regressor,
+    x_validation,
+    y_validation,
+    scoring="r2",
+    n_repeats=20,
+    max_samples=0.75,
+    random_state=7,
+)
+print(result.importances_mean, result.n_samples_used)
 ```
 
 Use held-out data when the goal is to understand reliance that generalizes.

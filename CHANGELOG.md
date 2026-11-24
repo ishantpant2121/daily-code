@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Extend permutation importance to built-in regression scorers and bounded evaluation subsets; report the number of rows used and keep the same sampled rows for baseline and shuffled scores.
+
 - Upgrade GitHub Actions checkout and Python setup steps to Node 24-compatible v7 releases after the runner's Node 20 deprecation warning.
 
 - Preserve validated explicit fold assignments when grid or randomized search receives a one-shot iterator, allowing safe repeated fits without exhausting the CV generator.
