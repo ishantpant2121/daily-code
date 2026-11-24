@@ -70,6 +70,19 @@ candidate dictionaries as it is iterated.
 - This API does not yet accept continuous distributions or objects exposing
   an `rvs` method.
 
+## Reusing one-shot cross-validation iterators
+
+`GridSearchCV` and `RandomizedSearchCV` accept explicit fold
+iterables. A generator or other one-shot iterator is consumed when its folds
+are first validated. The search object snapshots those validated index pairs
+and reuses the same folds on later `fit()` calls, rather than trying to read an
+exhausted iterator. This makes repeated fitting reproducible and keeps the
+validation partitions identical across refits.
+
+If you replace the search object's `cv` attribute with a different object, the
+cached snapshot is discarded and the new fold source is validated. Reusable
+splitter objects and ordinary lists are read again on each fit.
+
 ## Refit after failure
 
 Both `GridSearchCV` and `RandomizedSearchCV` clear results from their previous
