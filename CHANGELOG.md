@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Preserve validated explicit fold assignments when grid or randomized search receives a one-shot iterator, allowing safe repeated fits without exhausting the CV generator.
+
 - Added reusable explicit cross-validation folds and PredefinedSplit support across scoring, cross-validation, learning/validation curves, and grid/randomized search, with validation of fold indices and prediction coverage.
 
 - Added split conformal regression intervals with finite-sample rank correction, coverage/width helpers, validation and numeric-edge tests, documentation, and a runnable example.

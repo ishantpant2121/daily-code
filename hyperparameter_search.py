@@ -144,6 +144,10 @@ class GridSearchCV:
         self.estimator = estimator
         self.param_grid = param_grid
         self.cv = cv
+        # Snapshot one-shot CV iterators after validation so a later fit() does
+        # not see an exhausted generator. Reusable splitter objects stay live.
+        self._cv_folds_cache = None
+        self._cv_cache_source = cv
         self.scoring = scoring
         self.stratified = stratified
         self.shuffle = shuffle
@@ -180,11 +184,28 @@ class GridSearchCV:
 
         if not candidates:
             raise ValueError("parameter search requires at least one candidate")
+        if self.cv is not self._cv_cache_source:
+            self._cv_folds_cache = None
+            self._cv_cache_source = self.cv
+
+        cv_source = self._cv_folds_cache
+        if cv_source is None:
+            cv_source = self.cv
         cv_random_state = self.random_state if type(self.cv) is int else None
         cv_folds = _cv_splits(
-            self.cv, len(features), labels, stratified=self.stratified,
+            cv_source, len(features), labels, stratified=self.stratified,
             shuffle=self.shuffle, random_state=cv_random_state,
         )
+        if self._cv_folds_cache is None and type(self.cv) is not int:
+            try:
+                one_shot_cv = iter(self.cv) is self.cv
+            except TypeError:
+                one_shot_cv = False
+            if one_shot_cv:
+                self._cv_folds_cache = tuple(
+                    (tuple(train), tuple(validation))
+                    for train, validation in cv_folds
+                )
         rows = []
         best_index = 0
         best_score = -math.inf

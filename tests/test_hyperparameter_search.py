@@ -197,6 +197,25 @@ class GridSearchCVTests(unittest.TestCase):
         for fold in range(3):
             self.assertEqual(search.cv_results_[f"split{fold}_test_score"], [1.0, 1.0])
 
+    def test_refit_reuses_one_shot_explicit_folds(self):
+        features = [[0], [1], [2], [10], [11], [12]]
+        labels = [0, 0, 0, 1, 1, 1]
+        search = GridSearchCV(
+            DecisionTreeClassifier(),
+            {"max_depth": [1, 2]},
+            cv=iter(PredefinedSplit([0, 0, 1, 1, 2, 2])),
+            scoring="accuracy",
+        )
+        search.fit(features, labels)
+        first_results = {name: list(values) for name, values in search.cv_results_.items()}
+        first_best = search.best_params_.copy()
+
+        search.fit(features, labels)
+
+        self.assertEqual(search.cv_results_, first_results)
+        self.assertEqual(search.best_params_, first_best)
+        self.assertEqual(search.predict(features), labels)
+
     def test_failed_refit_clears_previous_best_results(self):
         from decision_tree import DecisionTreeClassifier
         from hyperparameter_search import GridSearchCV
@@ -296,6 +315,27 @@ class RandomizedSearchCVTests(unittest.TestCase):
         ).fit(features, labels)
         self.assertEqual(search.n_splits_, 3)
         self.assertEqual(len(search.cv_results_["mean_test_score"]), 2)
+
+    def test_refit_reuses_one_shot_explicit_folds(self):
+        features = [[0], [1], [2], [10], [11], [12]]
+        labels = [0, 0, 0, 1, 1, 1]
+        search = RandomizedSearchCV(
+            DecisionTreeClassifier(),
+            {"max_depth": [1, 2]},
+            n_iter=2,
+            cv=iter(PredefinedSplit([0, 0, 1, 1, 2, 2])),
+            scoring="accuracy",
+            random_state=8,
+        )
+        search.fit(features, labels)
+        first_results = {name: list(values) for name, values in search.cv_results_.items()}
+        first_sampled = [candidate.copy() for candidate in search.sampled_params_]
+
+        search.fit(features, labels)
+
+        self.assertEqual(search.cv_results_, first_results)
+        self.assertEqual(search.sampled_params_, first_sampled)
+        self.assertEqual(search.predict(features), labels)
 
     def test_failed_refit_clears_previous_results(self):
         from hyperparameter_search import RandomizedSearchCV
