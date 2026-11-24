@@ -354,7 +354,7 @@ fitting, so the original objects remain unchanged.
 
 - **advanced_splitting.py** — chronological `TimeSeriesSplit`, group-disjoint `GroupKFold` and `GroupShuffleSplit`, repeated K-fold and stratified K-fold, stratified randomized holdouts, and leave-one-out indices. Use chronological or group-aware splits when random row-level splitting would leak information.
 - **clustering_metrics.py** — per-sample and mean silhouette coefficients, adjusted Rand agreement, and Davies-Bouldin cluster separation.
-- **feature_importance.py** — model-agnostic permutation importance for an already-fitted estimator, with repeat-level score drops, means, and standard deviations.
+- **feature_importance.py** — model-agnostic permutation importance for fitted classifiers and regressors, with classification/regression scorers, repeat-level score drops, and optional row subsampling for large evaluation sets (reproducible when random_state is set).
 - **model_diagnostics.py** — learning curves, validation curves (including `step__parameter` pipeline parameters), and paired bootstrap confidence intervals for a fitted model's evaluation score.
 - **paired_model_comparison.py** — paired bootstrap confidence intervals and prediction-swap permutation tests for comparing two models on the same held-out rows.
 - **calibration_metrics.py** — binary uniform/quantile reliability bins, multiclass top-label and classwise reliability curves, and ECE/MCE/RMSCE summaries.
