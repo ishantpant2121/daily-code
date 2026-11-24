@@ -30,8 +30,9 @@ print(result.importances_mean)
 
 For larger evaluation datasets, max_samples accepts either an integer row
 count or a fraction in (0, 1]. Fractions are rounded up to at least one row.
-One deterministic subset is selected and reused for the baseline and all
-permutations, and its size is returned as n_samples_used. The same API works
+One subset is selected and reused for the baseline and all permutations.
+Supplying random_state makes the subset and permutation sequence reproducible
+across calls, and the selected size is returned as n_samples_used. The same API works
 with regression estimators:
 
 ```python

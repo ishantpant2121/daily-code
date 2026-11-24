@@ -43,8 +43,9 @@ def permutation_importance(
 
     max_samples limits the evaluation rows. An integer selects that many
     rows; a float in (0, 1] selects that fraction, rounded up to at least one
-    row. The same deterministic subset is used for the baseline and every
-    permutation so score differences remain comparable. n_samples_used
+    row. The same selected subset is used for the baseline and every permutation so
+    score differences remain comparable. Supplying a fixed random_state makes
+    the subset and permutation sequence reproducible across calls. n_samples_used
     reports the resulting subset size.
 
     A held-out validation set is recommended. Correlated features can mask one
