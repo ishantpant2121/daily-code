@@ -37,6 +37,7 @@ jobs:
           from decision_tree import DecisionTreeClassifier
           from gaussian_nb import GaussianNB
           from imputation import SimpleImputer
+          from interval_diagnostics import interval_diagnostics
           from kmeans import KMeans
           from knn_regressor import KNNRegressor
           from logistic_regression import LogisticRegression
@@ -50,6 +51,9 @@ jobs:
           from regression_metrics import explained_variance_score, mean_squared_log_error
 
           assert balanced_accuracy_score([0, 1], [0, 1]) == 1.0
+          interval_report = interval_diagnostics([1, 2], [(0, 2), (1, 3)], groups=['a', 'a'])
+          assert interval_report.overall.coverage == 1.0
+          assert interval_report.by_group['a'].count == 2
           assert matthews_corrcoef([0, 1], [0, 1]) == 1.0
           assert average_precision_score([0, 1], [0.1, 0.9]) == 1.0
           assert len(precision_recall_curve([0, 1], [0.1, 0.9])[0]) == 3
