@@ -30,5 +30,5 @@ miscoverage alpha must be strictly between zero and one.
 Run the focused tests with:
 
 ```bash
-python -m unittest tests.test_interval_diagnostics -v
+python -m unittest discover -s tests -p 'test_interval_diagnostics.py' -v
 ```
