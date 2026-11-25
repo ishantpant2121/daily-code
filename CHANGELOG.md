@@ -1,3 +1,7 @@
+## Unreleased
+
+- Add prediction-interval diagnostics for empirical coverage, interval width, Winkler score, and descriptive cohort summaries.
+
 # Changelog
 
 ## Unreleased
