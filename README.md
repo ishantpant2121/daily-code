@@ -383,3 +383,4 @@ These are educational, dependency-free implementations. Silhouette scoring is qu
 ## Split conformal regression
 
 - **split_conformal.py** — dependency-free split conformal intervals for regression with finite-sample rank correction, empirical coverage, and mean interval width helpers. Calibration predictions must come from a model trained on a separate training split. See the [split conformal regression guide](docs/split_conformal_prediction.md) and run `python examples/split_conformal_regression.py`.
+- **interval_diagnostics.py** — held-out prediction-interval coverage, mean/median width, Winkler score, and descriptive per-group summaries. Supports unbounded conformal intervals. See [interval diagnostics](docs/interval_diagnostics.md) and run `python examples/interval_diagnostics.py`.
