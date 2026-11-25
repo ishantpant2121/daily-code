@@ -68,7 +68,18 @@ def _intervals(values: Iterable[Iterable[Real]]) -> list[tuple[float, float]]:
             raise ValueError("each interval must contain two endpoints") from None
         if len(endpoints) != 2:
             raise ValueError("each interval must contain two endpoints")
-        lower, upper = _real_values(endpoints, "interval endpoints")
+        converted = []
+        for endpoint in endpoints:
+            if isinstance(endpoint, bool) or not isinstance(endpoint, Real):
+                raise ValueError("interval endpoints must be real numbers")
+            try:
+                value = float(endpoint)
+            except (OverflowError, TypeError, ValueError):
+                raise ValueError("interval endpoints must not be NaN") from None
+            if math.isnan(value):
+                raise ValueError("interval endpoints must not be NaN")
+            converted.append(value)
+        lower, upper = converted
         if lower > upper:
             raise ValueError("interval lower endpoint must not exceed upper endpoint")
         result.append((lower, upper))
