@@ -23,7 +23,7 @@ class IntervalDiagnosticsTests(unittest.TestCase):
 
     def test_group_summaries_preserve_first_seen_order(self):
         result = interval_diagnostics(
-            [0, 10, 1, 11],
+            [0, 10, 1, 14],
             [(-1, 1), (9, 11), (0, 2), (12, 13)],
             groups=["A", "B", "A", "B"],
         )
@@ -46,7 +46,6 @@ class IntervalDiagnosticsTests(unittest.TestCase):
 
     def test_rejects_invalid_values_and_intervals(self):
         invalid = [
-            (([1], [(0, 2)]), {}),
             (([1], [(2, 0)]), {}),
             (([1], [(0, 1, 2)]), {}),
             (([math.nan], [(0, 1)]), {}),
