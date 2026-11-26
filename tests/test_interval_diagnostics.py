@@ -45,6 +45,7 @@ class IntervalDiagnosticsTests(unittest.TestCase):
         )
         self.assertEqual(result.overall.mean_width, 1e308)
         self.assertEqual(result.overall.median_width, 1e308)
+        self.assertEqual(result.overall.mean_interval_score, 1e308)
 
     def test_empty_groups_and_mismatched_lengths(self):
         with self.assertRaisesRegex(ValueError, "equal lengths"):
