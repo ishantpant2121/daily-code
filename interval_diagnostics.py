@@ -94,11 +94,15 @@ def _summary(targets, bounds, alpha: float) -> IntervalSummary:
     if any(not math.isfinite(width) for width in widths):
         mean_width = median_width = math.inf
     else:
-        mean_width = math.fsum(widths) / len(widths)
+        # Scale before summing: fsum can overflow even when the mean is
+        # representable (for example, two widths near 1e308).
+        scale = max(widths)
+        mean_width = (0.0 if scale == 0.0 else
+                      scale * (math.fsum(width / scale for width in widths) / len(widths)))
         ordered = sorted(widths)
         middle = len(ordered) // 2
         median_width = (ordered[middle] if len(ordered) % 2 else
-                        (ordered[middle - 1] + ordered[middle]) / 2.0)
+                        ordered[middle - 1] / 2.0 + ordered[middle] / 2.0)
     scores = []
     for target, (lower, upper), width in zip(targets, bounds, widths):
         penalty = (2.0 / alpha) * (lower - target) if target < lower else 0.0
