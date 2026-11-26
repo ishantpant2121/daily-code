@@ -1,6 +1,7 @@
 ## Unreleased
 
 - Add prediction-interval diagnostics for empirical coverage, interval width, Winkler score, and descriptive cohort summaries.
+- Stabilize mean and median interval-width aggregation when large finite widths would overflow intermediate sums.
 
 # Changelog
 

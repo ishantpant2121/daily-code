@@ -38,6 +38,15 @@ class IntervalDiagnosticsTests(unittest.TestCase):
         self.assertTrue(math.isinf(result.overall.mean_width))
         self.assertTrue(math.isinf(result.overall.mean_interval_score))
 
+    def test_large_finite_widths_keep_representable_averages(self):
+        result = interval_diagnostics(
+            [0.0, 0.0],
+            [(0.0, 1e308), (0.0, 1e308)],
+        )
+        self.assertEqual(result.overall.mean_width, 1e308)
+        self.assertEqual(result.overall.median_width, 1e308)
+        self.assertEqual(result.overall.mean_interval_score, 1e308)
+
     def test_empty_groups_and_mismatched_lengths(self):
         with self.assertRaisesRegex(ValueError, "equal lengths"):
             interval_diagnostics([1, 2], [(0, 2)], groups=["A", "B"])
