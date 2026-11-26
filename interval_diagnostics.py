@@ -111,7 +111,11 @@ def _summary(targets, bounds, alpha: float) -> IntervalSummary:
     return IntervalSummary(
         count=len(targets), coverage=covered / len(targets),
         mean_width=mean_width, median_width=median_width,
-        mean_interval_score=math.fsum(scores) / len(scores),
+        mean_interval_score=(
+            math.inf if any(not math.isfinite(score) for score in scores)
+            else (0.0 if max(scores) == 0.0 else
+                  max(scores) * (math.fsum(score / max(scores) for score in scores) / len(scores)))
+        ),
         covered=covered, below=below, above=above,
     )
 
