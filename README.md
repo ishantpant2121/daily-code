@@ -380,6 +380,10 @@ Focused guides: [advanced validation](docs/advanced_validation.md), [clustering 
 These are educational, dependency-free implementations. Silhouette scoring is quadratic in sample count; permutation importance performs one model scoring pass per feature and repeat; bootstrap intervals condition on the already-fitted model. Paired model-comparison utilities use fixed predictions and assume the models were evaluated on the same held-out rows. Use held-out data for model inspection, and choose time- or group-aware validation whenever observations are not independent.
 
 
+## Proportion uncertainty
+
+- **proportion_intervals.py** — two-sided Wilson score intervals for binomial proportions. Use the interval around observed prediction coverage to communicate finite-test-sample uncertainty; independence and identical Bernoulli sampling assumptions apply. See [Wilson interval guide](docs/proportion_intervals.md) and run `python examples/coverage_uncertainty.py`.
+
 ## Split conformal regression
 
 - **split_conformal.py** — dependency-free split conformal intervals for regression with finite-sample rank correction, empirical coverage, and mean interval width helpers. Calibration predictions must come from a model trained on a separate training split. See the [split conformal regression guide](docs/split_conformal_prediction.md) and run `python examples/split_conformal_regression.py`.
