@@ -25,6 +25,8 @@ behavior of the simple normal/Wald interval.
   observations need a method that accounts for their sampling design.
 - The returned interval is an approximate score interval, not an exact
   Clopper-Pearson interval.
+- Confidence levels so close to one that the upper normal quantile rounds to
+  exactly one in binary floating point are rejected explicitly.
 - A nominal 95% confidence procedure describes long-run coverage under its
   model; it does not mean there is a 95% probability that a fixed parameter
   lies inside this already-computed interval.
