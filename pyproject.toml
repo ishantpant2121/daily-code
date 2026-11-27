@@ -45,6 +45,7 @@ py-modules = [
     "matrix_algorithms",
     "model_diagnostics",
     "paired_model_comparison",
+    "proportion_intervals",
     "model_selection",
     "pathfinding",
     "pipeline",
