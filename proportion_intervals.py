@@ -52,6 +52,8 @@ def wilson_score_interval(
     # can round to exactly 1.0 for the largest representable confidence
     # levels below one, producing an infinite quantile.
     upper_probability = 1.0 - (1.0 - confidence_level) / 2.0
+    if upper_probability >= 1.0:
+        raise ValueError("confidence_level is too close to one for float quantile precision")
     z = NormalDist().inv_cdf(upper_probability)
     z_squared = z * z
     denominator = 1.0 + z_squared / trials
@@ -62,4 +64,6 @@ def wilson_score_interval(
             + z_squared / (4.0 * trials * trials)
         ) / denominator
     )
-    return max(0.0, center - half_width), min(1.0, center + half_width)
+    lower = 0.0 if successes == 0 else max(0.0, center - half_width)
+    upper = 1.0 if successes == trials else min(1.0, center + half_width)
+    return lower, upper
