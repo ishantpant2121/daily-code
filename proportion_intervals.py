@@ -48,7 +48,11 @@ def wilson_score_interval(
         raise ValueError("confidence_level must be strictly between zero and one")
 
     observed = successes / trials
-    z = NormalDist().inv_cdf(0.5 + confidence_level / 2.0)
+    # Form the upper-tail probability directly. 0.5 + confidence / 2
+    # can round to exactly 1.0 for the largest representable confidence
+    # levels below one, producing an infinite quantile.
+    upper_probability = 1.0 - (1.0 - confidence_level) / 2.0
+    z = NormalDist().inv_cdf(upper_probability)
     z_squared = z * z
     denominator = 1.0 + z_squared / trials
     center = (observed + z_squared / (2.0 * trials)) / denominator
